@@ -30,6 +30,6 @@ springdoc:
 
 logging:
   level:
-    com.example.dynapi: DEBUG
+    com.dynapi.dynapi: DEBUG
     org.springframework.data.mongodb: INFO
     org.springframework.amqp: INFO
