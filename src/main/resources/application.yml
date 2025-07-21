@@ -1,0 +1,35 @@
+spring:
+  data:
+    mongodb:
+      host: localhost
+      port: 27017
+      database: dynapi
+  
+  rabbitmq:
+    host: localhost
+    port: 5672
+    username: guest
+    password: guest
+
+  messages:
+    basename: messages
+    encoding: UTF-8
+    fallback-to-system-locale: false
+
+server:
+  port: 8080
+  servlet:
+    context-path: /api
+
+springdoc:
+  api-docs:
+    path: /api-docs
+  swagger-ui:
+    path: /swagger-ui.html
+    operationsSorter: method
+
+logging:
+  level:
+    com.example.dynapi: DEBUG
+    org.springframework.data.mongodb: INFO
+    org.springframework.amqp: INFO
