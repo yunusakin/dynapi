@@ -1,18 +1,19 @@
 package com.dynapi.domain.validation;
 
+import com.dynapi.domain.exception.ValidationException;
 import com.dynapi.domain.model.FieldDefinition;
 import com.dynapi.domain.model.FieldType;
-import com.dynapi.domain.exception.ValidationException;
 import org.springframework.stereotype.Component;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 
 @Component
 public class DynamicValidator {
-    public void validate(Map<String, Object> data, List<FieldDefinition> schema) {
+    public void validate(Map<String, Object> data, List<FieldDefinition> schema, Locale locale) {
         for (FieldDefinition field : schema) {
             Object value = data.get(field.getFieldName());
-            
+
             // Required field validation
             if (field.isRequired() && (value == null || String.valueOf(value).trim().isEmpty())) {
                 throw new ValidationException(field.getFieldName(), "Field is required");
@@ -21,7 +22,7 @@ public class DynamicValidator {
             if (value != null) {
                 // Type validation
                 validateType(field, value);
-                
+
                 // Subfields validation if type is OBJECT
                 if (field.getType() == FieldType.OBJECT && field.getSubFields() != null) {
                     if (!(value instanceof Map)) {
@@ -29,7 +30,7 @@ public class DynamicValidator {
                     }
                     @SuppressWarnings("unchecked")
                     Map<String, Object> objectValue = (Map<String, Object>) value;
-                    validate(objectValue, field.getSubFields());
+                    validate(objectValue, field.getSubFields(), locale);
                 }
 
                 // Array validation if type is ARRAY
@@ -41,7 +42,7 @@ public class DynamicValidator {
                         if (item instanceof Map) {
                             @SuppressWarnings("unchecked")
                             Map<String, Object> mapItem = (Map<String, Object>) item;
-                            validate(mapItem, field.getSubFields());
+                            validate(mapItem, field.getSubFields(), locale);
                         }
                     }
                 }
@@ -51,27 +52,31 @@ public class DynamicValidator {
 
     private void validateType(FieldDefinition field, Object value) {
         switch (field.getType()) {
-            case STRING:
+            case STRING -> {
                 if (!(value instanceof String)) {
                     throw new ValidationException(field.getFieldName(), "Must be a string");
                 }
-                break;
-            case NUMBER:
+            }
+            case NUMBER -> {
                 if (!(value instanceof Number)) {
                     throw new ValidationException(field.getFieldName(), "Must be a number");
                 }
-                break;
-            case BOOLEAN:
+            }
+            case BOOLEAN -> {
                 if (!(value instanceof Boolean)) {
                     throw new ValidationException(field.getFieldName(), "Must be a boolean");
                 }
-                break;
-            case OBJECT:
-            case ARRAY:
-                // Handled in the main validate method
-                break;
-            default:
-                throw new ValidationException(field.getFieldName(), "Unsupported field type");
+            }
+            case DATE -> {
+                if (!(value instanceof String)) {
+                    throw new ValidationException(field.getFieldName(), "Must be a date string");
+                }
+                // Additional date parsing logic can be added here
+            }
+            case OBJECT, ARRAY -> {
+                // Handled in validate method
+            }
+            default -> throw new ValidationException(field.getFieldName(), "Unsupported field type");
         }
     }
 }

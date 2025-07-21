@@ -1,9 +1,9 @@
 package com.dynapi.application.service;
 
-import com.dynapi.domain.service.DynamicValidator;
+import com.dynapi.domain.exception.ValidationException;
 import com.dynapi.domain.model.FieldDefinition;
 import com.dynapi.domain.model.FieldType;
-import com.dynapi.domain.exception.ValidationException;
+import com.dynapi.domain.service.DynamicValidator;
 import org.springframework.stereotype.Component;
 import java.util.List;
 import java.util.Map;

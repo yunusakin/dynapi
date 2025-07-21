@@ -52,9 +52,6 @@
 /Users/yunusakin/Docs/Documents/dynapi/src/main/java/com/dynapi/interfaces/rest/dto/ApiResponse.java
 /Users/yunusakin/Docs/Documents/dynapi/src/main/java/com/dynapi/interfaces/rest/dto/ErrorResponse.java
 /Users/yunusakin/Docs/Documents/dynapi/src/main/java/com/dynapi/interfaces/rest/dto/FormSubmissionRequest.java
-/Users/yunusakin/Docs/Documents/dynapi/src/main/java/com/dynapi/model/FieldDefinition.java
-/Users/yunusakin/Docs/Documents/dynapi/src/main/java/com/dynapi/model/FieldGroup.java
-/Users/yunusakin/Docs/Documents/dynapi/src/main/java/com/dynapi/model/FieldType.java
 /Users/yunusakin/Docs/Documents/dynapi/src/main/java/com/dynapi/repository/FieldDefinitionRepository.java
 /Users/yunusakin/Docs/Documents/dynapi/src/main/java/com/dynapi/repository/FieldGroupRepository.java
 /Users/yunusakin/Docs/Documents/dynapi/src/main/java/com/dynapi/security/SecurityConfig.java

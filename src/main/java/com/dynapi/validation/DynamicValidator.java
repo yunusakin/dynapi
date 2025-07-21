@@ -1,7 +1,7 @@
 package com.dynapi.validation;
 
-import com.dynapi.model.FieldDefinition;
-import com.dynapi.model.FieldType;
+import com.dynapi.domain.model.FieldDefinition;
+import com.dynapi.domain.model.FieldType;
 import org.springframework.context.MessageSource;
 import org.springframework.stereotype.Component;
 import java.util.List;

@@ -1,18 +1,15 @@
 package com.dynapi.service;
 
 import com.dynapi.dto.FormSubmissionRequest;
-import com.dynapi.model.FieldGroup;
-import com.dynapi.model.FieldDefinition;
+import com.dynapi.domain.model.FieldGroup;
+import com.dynapi.domain.model.FieldDefinition;
 import com.dynapi.repository.FieldGroupRepository;
 import java.util.List;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.MessageSource;
 import org.springframework.stereotype.Service;
-import org.springframework.validation.BeanPropertyBindingResult;
-import org.springframework.validation.Errors;
 import org.springframework.validation.Validator;
 import org.springframework.data.mongodb.core.MongoTemplate;
-import org.springframework.data.mongodb.core.mapping.Document;
 import java.util.Locale;
 import java.util.Optional;
 
@@ -32,7 +29,7 @@ public class FormSubmissionService {
     @Autowired
     private com.dynapi.repository.FieldDefinitionRepository fieldDefinitionRepository;
     @Autowired
-    private com.dynapi.validation.DynamicValidator dynamicValidator;
+    private com.dynapi.domain.validation.DynamicValidator dynamicValidator;
 
     public void submitForm(FormSubmissionRequest request, Locale locale) {
         // 1. Load schema using group
@@ -44,7 +41,7 @@ public class FormSubmissionService {
         // 2. Load field definitions for this group
         List<FieldDefinition> schema = fieldDefinitionRepository.findAllById(group.getFieldNames());
         // 3. Validate input recursively and type-safe
-        dynamicValidator.validate(request.getData(), schema, messageSource, locale);
+        dynamicValidator.validate(request.getData(), schema, locale);
         // 4. Save form data to collection by entity
         String collectionName = group.getEntity();
         mongoTemplate.save(request.getData(), collectionName);

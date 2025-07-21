@@ -34,7 +34,7 @@ public class SchemaVersionServiceImpl implements SchemaVersionService {
         SchemaVersion schemaVersion = new SchemaVersion();
         schemaVersion.setEntityName(entityName);
         schemaVersion.setVersion(newVersion);
-        schemaVersion.setFields(fields);
+        schemaVersion.setFields(new ArrayList<>(fields));
         schemaVersion.setStatus("DRAFT");
         schemaVersion.setCreatedAt(LocalDateTime.now());
         

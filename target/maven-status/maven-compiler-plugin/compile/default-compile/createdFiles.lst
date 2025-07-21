@@ -18,7 +18,6 @@ com/dynapi/application/service/FormSubmissionApplicationService.class
 com/dynapi/application/port/AuditPublisher.class
 com/dynapi/interfaces/rest/dto/ErrorResponse.class
 com/dynapi/repository/FieldDefinitionRepository.class
-com/dynapi/model/FieldType.class
 com/dynapi/application/port/input/SubmitFormUseCase.class
 com/dynapi/validation/DynamicValidator$1.class
 com/dynapi/domain/repository/FieldGroupRepository.class
@@ -33,7 +32,6 @@ com/dynapi/interfaces/rest/dto/FormSubmissionRequest.class
 com/dynapi/dto/FormRecordDto.class
 com/dynapi/domain/model/FormSubmission.class
 com/dynapi/dto/PaginatedResponse.class
-com/dynapi/model/FieldGroup.class
 com/dynapi/domain/service/FieldPermissionService.class
 com/dynapi/controller/SchemaAdminController.class
 com/dynapi/domain/service/impl/SchemaVersionServiceImpl.class
@@ -54,7 +52,6 @@ com/dynapi/domain/validation/DynamicValidator.class
 com/dynapi/interfaces/rest/FormSubmissionController.class
 com/dynapi/domain/service/FormSubmissionDomainServiceImpl.class
 com/dynapi/domain/model/DynamicQuery.class
-com/dynapi/model/FieldDefinition.class
 com/dynapi/application/port/FormSubmissionPersistencePort.class
 com/dynapi/exception/GlobalExceptionHandler.class
 com/dynapi/repository/FieldGroupRepository.class

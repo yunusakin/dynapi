@@ -1,8 +1,8 @@
 package com.dynapi.controller;
 
 import com.dynapi.dto.ApiResponse;
-import com.dynapi.model.FieldDefinition;
-import com.dynapi.model.FieldGroup;
+import com.dynapi.domain.model.FieldDefinition;
+import com.dynapi.domain.model.FieldGroup;
 import com.dynapi.repository.FieldDefinitionRepository;
 import com.dynapi.repository.FieldGroupRepository;
 import org.springframework.beans.factory.annotation.Autowired;
