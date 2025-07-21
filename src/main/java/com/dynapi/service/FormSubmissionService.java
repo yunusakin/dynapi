@@ -5,31 +5,23 @@ import com.dynapi.domain.model.FieldGroup;
 import com.dynapi.domain.model.FieldDefinition;
 import com.dynapi.repository.FieldGroupRepository;
 import java.util.List;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.MessageSource;
 import org.springframework.stereotype.Service;
 import org.springframework.validation.Validator;
 import org.springframework.data.mongodb.core.MongoTemplate;
 import java.util.Locale;
 import java.util.Optional;
+import lombok.RequiredArgsConstructor;
 
 @Service
+@RequiredArgsConstructor
 public class FormSubmissionService {
-    @Autowired
-    private com.dynapi.audit.AuditPublisher auditPublisher;
-    @Autowired
-    private com.dynapi.repository.FieldGroupRepository fieldGroupRepository;
-    @Autowired
-    private MongoTemplate mongoTemplate;
-    @Autowired
-    private MessageSource messageSource;
-    @Autowired
-    private Validator validator;
-
-    @Autowired
-    private com.dynapi.repository.FieldDefinitionRepository fieldDefinitionRepository;
-    @Autowired
-    private com.dynapi.domain.validation.DynamicValidator dynamicValidator;
+    private final com.dynapi.audit.AuditPublisher auditPublisher;
+    private final com.dynapi.repository.FieldGroupRepository fieldGroupRepository;
+    private final MongoTemplate mongoTemplate;
+    private final MessageSource messageSource;
+    private final com.dynapi.repository.FieldDefinitionRepository fieldDefinitionRepository;
+    private final com.dynapi.domain.validation.DynamicValidator dynamicValidator;
 
     public void submitForm(FormSubmissionRequest request, Locale locale) {
         // 1. Load schema using group

@@ -3,21 +3,22 @@ package com.dynapi.service;
 import com.dynapi.dto.DynamicQueryRequest;
 import com.dynapi.dto.FormRecordDto;
 import com.dynapi.dto.PaginatedResponse;
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.stereotype.Service;
+
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
 @Service
+@RequiredArgsConstructor
 public class DynamicQueryService {
-    @Autowired
-    private MongoTemplate mongoTemplate;
+    private final MongoTemplate mongoTemplate;
 
     public PaginatedResponse<FormRecordDto> query(String entity, DynamicQueryRequest request) {
         Query query = new Query();

@@ -1,15 +1,16 @@
 package com.dynapi.audit;
 
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.RequiredArgsConstructor;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Component;
 
 import java.util.Map;
 
 @Component
+@RequiredArgsConstructor
 public class AuditPublisher {
-    @Autowired
-    private ApplicationEventPublisher publisher;
+    private final ApplicationEventPublisher publisher;
+
     public void publish(String action, String entity, Map<String, Object> details) {
         publisher.publishEvent(new AuditEvent(this, action, entity, details));
     }
