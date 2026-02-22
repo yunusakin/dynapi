@@ -1,0 +1,35 @@
+name: require-issue-link
+
+on:
+  pull_request:
+    types: [opened, edited, synchronize, reopened, ready_for_review]
+
+permissions:
+  contents: read
+  pull-requests: read
+
+jobs:
+  enforce-link:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ensure PR links at least one issue
+        env:
+          PR_TITLE: ${{ github.event.pull_request.title }}
+          PR_BODY: ${{ github.event.pull_request.body }}
+        run: |
+          set -euo pipefail
+
+          text="${PR_TITLE}"$'\n'"${PR_BODY:-}"
+          pattern='(close[sd]?|fix(e[sd])?|resolve[sd]?|ref(s|erence[sd]?)?)[[:space:]]*:?[[:space:]]*#([0-9]+)'
+
+          if printf '%s\n' "${text}" | grep -Eiq "${pattern}"; then
+            echo "Issue link found."
+            exit 0
+          fi
+
+          echo "PR must link an issue."
+          echo "Add one of these to PR title or body:"
+          echo "- Closes #123"
+          echo "- Fixes #123"
+          echo "- Refs #123"
+          exit 1

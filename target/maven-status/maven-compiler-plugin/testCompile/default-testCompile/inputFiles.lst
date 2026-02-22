@@ -1,1 +1,4 @@
-/Users/yunusakin/Docs/Documents/dynapi/src/test/java/com/example/dynapi/DynapiApplicationTests.java
+/Users/yunus.akin/Documents/projects/Java/dynapi/src/test/java/com/dynapi/DynapiApplicationTests.java
+/Users/yunus.akin/Documents/projects/Java/dynapi/src/test/java/com/dynapi/integration/FormControllerIntegrationTest.java
+/Users/yunus.akin/Documents/projects/Java/dynapi/src/test/java/com/dynapi/integration/QueryControllerIntegrationTest.java
+/Users/yunus.akin/Documents/projects/Java/dynapi/src/test/java/com/dynapi/integration/SchemaAdminControllerSecurityIntegrationTest.java

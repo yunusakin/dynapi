@@ -1,0 +1,45 @@
+name: Feature
+description: Plan and track a new feature.
+title: "[Feature] "
+labels:
+  - feature
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem
+      description: What user or business problem are we solving?
+      placeholder: Users cannot ...
+    validations:
+      required: true
+
+  - type: textarea
+    id: scope
+    attributes:
+      label: Scope
+      description: What is in scope for this issue?
+      placeholder: |
+        - Add ...
+        - Update ...
+    validations:
+      required: true
+
+  - type: textarea
+    id: acceptance_criteria
+    attributes:
+      label: Acceptance Criteria
+      description: Testable outcomes required to close this issue.
+      placeholder: |
+        - [ ] ...
+        - [ ] ...
+    validations:
+      required: true
+
+  - type: input
+    id: project_status
+    attributes:
+      label: Project Status
+      description: Optional status value used in your GitHub Project (Todo, In Progress, Done).
+      placeholder: Todo
+    validations:
+      required: false

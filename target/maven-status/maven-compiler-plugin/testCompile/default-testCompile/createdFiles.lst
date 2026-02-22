@@ -1,1 +1,7 @@
-com/dynapi/dynapi/DynapiApplicationTests.class
+com/dynapi/integration/FormControllerIntegrationTest$FormControllerTestConfig.class
+com/dynapi/integration/QueryControllerIntegrationTest$QueryControllerTestConfig.class
+com/dynapi/integration/QueryControllerIntegrationTest.class
+com/dynapi/DynapiApplicationTests.class
+com/dynapi/integration/SchemaAdminControllerSecurityIntegrationTest.class
+com/dynapi/integration/FormControllerIntegrationTest.class
+com/dynapi/integration/SchemaAdminControllerSecurityIntegrationTest$SchemaAdminControllerTestConfig.class

@@ -10,12 +10,10 @@ import com.dynapi.domain.repository.FieldDefinitionRepository;
 import com.dynapi.domain.service.FormSubmissionDomainService;
 import com.dynapi.domain.model.FieldDefinition;
 import org.springframework.context.MessageSource;
-import org.springframework.stereotype.Service;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 
-@Service
 public class FormSubmissionApplicationService implements SubmitFormUseCase {
     private final FieldGroupRepository fieldGroupRepository;
     private final FieldDefinitionRepository fieldDefinitionRepository;

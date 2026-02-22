@@ -9,7 +9,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
-@RequestMapping("/api/query")
+@RequestMapping("/query")
 @RequiredArgsConstructor
 public class QueryController {
     private final DynamicQueryService dynamicQueryService;

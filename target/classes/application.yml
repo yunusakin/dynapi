@@ -5,11 +5,11 @@ spring:
       port: 27017
       database: dynapi
   
-  rabbitmq:
-    host: localhost
-    port: 5672
-    username: guest
-    password: guest
+  kafka:
+    bootstrap-servers: localhost:9092
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
 
   messages:
     basename: messages
@@ -21,6 +21,10 @@ server:
   servlet:
     context-path: /api
 
+security:
+  jwt:
+    secret: ZHluYXBpLWRldi1zZWNyZXQta2V5LWNoYW5nZS1tZS0xMjM0NTY3ODkw
+
 springdoc:
   api-docs:
     path: /api-docs
@@ -30,6 +34,6 @@ springdoc:
 
 logging:
   level:
-    com.dynapi.dynapi: DEBUG
+    com.dynapi: DEBUG
     org.springframework.data.mongodb: INFO
-    org.springframework.amqp: INFO
+    org.springframework.kafka: INFO

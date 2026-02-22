@@ -1,0 +1,36 @@
+name: Task
+description: Track implementation or maintenance work.
+title: "[Task] "
+labels:
+  - task
+body:
+  - type: textarea
+    id: objective
+    attributes:
+      label: Objective
+      description: What should be completed?
+      placeholder: Implement ...
+    validations:
+      required: true
+
+  - type: textarea
+    id: checklist
+    attributes:
+      label: Checklist
+      description: Concrete subtasks for completion.
+      placeholder: |
+        - [ ] ...
+        - [ ] ...
+    validations:
+      required: true
+
+  - type: textarea
+    id: definition_of_done
+    attributes:
+      label: Definition of Done
+      description: What must be true before closing this issue?
+      placeholder: |
+        - All checklist items done
+        - Tests pass
+    validations:
+      required: true

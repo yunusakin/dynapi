@@ -11,7 +11,7 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
 @RestController
-@RequestMapping("/api/admin/schema")
+@RequestMapping("/admin/schema")
 @RequiredArgsConstructor
 public class SchemaAdminController {
     private final FieldDefinitionRepository fieldDefinitionRepository;

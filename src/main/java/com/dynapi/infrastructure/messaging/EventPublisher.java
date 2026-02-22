@@ -1,26 +1,26 @@
 package com.dynapi.infrastructure.messaging;
 
 import com.dynapi.domain.event.DomainEvent;
-import org.springframework.amqp.rabbit.core.RabbitTemplate;
+import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Service;
 
 @Service
 public class EventPublisher {
-    private final RabbitTemplate rabbitTemplate;
-    
-    public EventPublisher(RabbitTemplate rabbitTemplate) {
-        this.rabbitTemplate = rabbitTemplate;
+    private final KafkaTemplate<String, Object> kafkaTemplate;
+
+    public EventPublisher(KafkaTemplate<String, Object> kafkaTemplate) {
+        this.kafkaTemplate = kafkaTemplate;
     }
-    
+
     public void publishSchemaChange(DomainEvent<?> event) {
-        rabbitTemplate.convertAndSend("schema-changes", event);
+        kafkaTemplate.send(KafkaConfig.SCHEMA_CHANGES_TOPIC, event);
     }
-    
+
     public void publishDataValidation(DomainEvent<?> event) {
-        rabbitTemplate.convertAndSend("data-validation", event);
+        kafkaTemplate.send(KafkaConfig.DATA_VALIDATION_TOPIC, event);
     }
-    
+
     public void publishAuditEvent(DomainEvent<?> event) {
-        rabbitTemplate.convertAndSend("audit-events", event);
+        kafkaTemplate.send(KafkaConfig.AUDIT_EVENTS_TOPIC, event);
     }
 }

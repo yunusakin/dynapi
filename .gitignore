@@ -1,0 +1,20 @@
+.DS_Store
+.idea/
+.env
+.env.*
+*.log
+node_modules/
+dist/
+build/
+coverage/
+.tmp/
+.cache/
+.validate-tmp/
+
+# Local AI workflow files (not shared via git)
+sdd/
+.cursorrules
+.editorconfig
+AGENT.md
+AGENTS.md
+CLAUDE.md

@@ -5,11 +5,11 @@ spring:
       port: 27017
       database: dynapi-test
   
-  rabbitmq:
-    host: localhost
-    port: 5672
-    username: guest
-    password: guest
+  kafka:
+    bootstrap-servers: localhost:9092
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
 
   messages:
     basename: messages
@@ -17,3 +17,7 @@ spring:
 
 server:
   port: 0 # Random port for testing
+
+security:
+  jwt:
+    secret: ZHluYXBpLWRldi1zZWNyZXQta2V5LWNoYW5nZS1tZS0xMjM0NTY3ODkw

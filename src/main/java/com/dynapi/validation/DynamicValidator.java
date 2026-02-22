@@ -3,13 +3,11 @@ package com.dynapi.validation;
 import com.dynapi.domain.model.FieldDefinition;
 import com.dynapi.domain.model.FieldType;
 import org.springframework.context.MessageSource;
-import org.springframework.stereotype.Component;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.stream.Collectors;
 
-@Component
 public class DynamicValidator {
     private final MessageSource messageSource;
 

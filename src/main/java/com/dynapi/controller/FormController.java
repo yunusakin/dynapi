@@ -8,7 +8,7 @@ import org.springframework.context.i18n.LocaleContextHolder;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
-@RequestMapping("/api/form")
+@RequestMapping("/form")
 @RequiredArgsConstructor
 public class FormController {
     private final FormSubmissionService formSubmissionService;

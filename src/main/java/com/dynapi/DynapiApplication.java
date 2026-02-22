@@ -1,4 +1,4 @@
-package com.dynapi.dynapi;
+package com.dynapi;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
