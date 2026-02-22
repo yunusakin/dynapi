@@ -1,23 +1,17 @@
 # Dynapi
 
-Dynapi is a Spring Boot backend for dynamic field/schema-driven data handling.
-Client applications can define fields and submit/query dynamic payloads without backend changes for each new form model.
+Dynapi is a dynamic schema-driven backend API built with Spring Boot, MongoDB, Kafka, and JWT.
 
-## Current Status
+The main idea:
+- Define fields and field groups at runtime.
+- Accept dynamic form payloads based on those definitions.
+- Query stored records with filters, pagination, and sorting.
 
-Sprint 01 progress:
-- Messaging migrated from RabbitMQ to Kafka
-- HTTP Basic replaced with JWT filter-chain auth for admin routes
-- API response and exception handling unified to one contract (`com.dynapi.dto.ApiResponse`)
+## API Base URLs
 
-## Tech Stack
-
-- Java 21
-- Spring Boot 3.3
-- Spring Web, Spring Security, Spring Validation
-- MongoDB 7
-- Kafka
-- springdoc-openapi
+- Base URL: `http://localhost:8080/api`
+- OpenAPI JSON: `http://localhost:8080/api/api-docs`
+- Swagger UI: `http://localhost:8080/api/swagger-ui.html`
 
 ## Prerequisites
 
@@ -25,13 +19,17 @@ Sprint 01 progress:
 - Docker Desktop
 - Maven Wrapper (`./mvnw`)
 
-## Quick Start
+## 1. Start Local Dependencies
 
-### 1. Start local dependencies
+MongoDB:
 
 ```bash
 docker run -d --name dynapi-mongo -p 27017:27017 mongo:7
+```
 
+Kafka (KRaft single-node):
+
+```bash
 docker run -d --name dynapi-kafka -p 9092:9092 \
   -e KAFKA_NODE_ID=1 \
   -e KAFKA_PROCESS_ROLES=broker,controller \
@@ -49,94 +47,161 @@ docker run -d --name dynapi-kafka -p 9092:9092 \
   confluentinc/cp-kafka:7.6.1
 ```
 
-### 2. Run tests
-
-```bash
-./mvnw -q test
-```
-
-### 3. Run application
+## 2. Run the App
 
 ```bash
 ./mvnw spring-boot:run
 ```
 
-App default base URL:
-- `http://localhost:8080/api`
+Optional smoke check:
 
-Swagger UI:
-- `http://localhost:8080/api/swagger-ui.html`
+```bash
+curl -i http://localhost:8080/api/api-docs
+```
 
-## Configuration
+## 3. Run Tests
 
-Main runtime config: `src/main/resources/application.yml`
+```bash
+./mvnw -q clean test
+```
 
-Key values:
-- MongoDB: `localhost:27017`, database `dynapi`
-- Kafka: `localhost:9092`
-- Context path: `/api`
-- JWT secret property: `security.jwt.secret`
+## 4. Understand Security First
 
-Test profile config: `src/test/resources/application-test.yml`
+- Admin schema routes (`/api/admin/**`) require JWT with `ADMIN` role.
+- Public routes (`/api/form`, `/api/query/**`) are currently open.
+- There is no token-issuing endpoint yet.
 
-## Security Model (Current)
+For local testing you can generate a JWT externally and use:
+- `alg`: `HS256`
+- `sub`: any username
+- `roles`: include `ADMIN`
+- signing secret (decoded text): `dynapi-dev-secret-key-change-me-1234567890`
 
-- Admin paths are protected by JWT filter-chain rules.
-- Non-admin paths are currently permitted.
-- JWT validation expects:
-  - `sub` claim (username)
-  - `roles` claim (string or array), where `ADMIN` maps to `ROLE_ADMIN`
+Then export:
 
-Note:
-- There is no token-issuing endpoint yet in the API. Token generation is currently external/dev-only.
+```bash
+export ADMIN_TOKEN="<your-jwt-token>"
+export BASE_URL="http://localhost:8080/api"
+```
 
-## API Contract (Current)
+## 5. Learn by Using It (End-to-End)
 
-Canonical response envelope:
-- `com.dynapi.dto.ApiResponse<T>`
-- Fields: `success`, `message`, `data`, optional `errors`, optional `metadata`
+### Step A: Create field definitions (admin)
 
-Canonical global exception handler:
-- `com.dynapi.exception.GlobalExceptionHandler`
+Create `title` field:
 
-## Declared Endpoint Groups
+```bash
+curl -s -X POST "$BASE_URL/admin/schema/field-definitions" \
+  -H "Authorization: Bearer $ADMIN_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "fieldName": "title",
+    "type": "STRING",
+    "required": true,
+    "version": 1
+  }'
+```
 
-Controllers currently declare routes for:
-- Form submission
-- Dynamic query
-- Admin schema CRUD
+Create `priority` field:
 
-Controller files:
-- `src/main/java/com/dynapi/controller/FormController.java`
-- `src/main/java/com/dynapi/controller/QueryController.java`
-- `src/main/java/com/dynapi/controller/SchemaAdminController.java`
-- `src/main/java/com/dynapi/interfaces/rest/FormSubmissionController.java`
+```bash
+curl -s -X POST "$BASE_URL/admin/schema/field-definitions" \
+  -H "Authorization: Bearer $ADMIN_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "fieldName": "priority",
+    "type": "NUMBER",
+    "required": false,
+    "version": 1
+  }'
+```
 
-## Known Issue
+### Step B: Create a field group (admin)
 
-Current package layout has mixed roots:
-- Main app class package: `com.dynapi.dynapi`
-- Most controllers/services package: `com.dynapi.*`
+This group maps to Mongo collection `tasks`:
 
-Because of this, component scanning may not load all intended beans/routes without explicit scan configuration.
+```bash
+curl -s -X POST "$BASE_URL/admin/schema/field-groups" \
+  -H "Authorization: Bearer $ADMIN_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "task-form",
+    "entity": "tasks",
+    "fieldNames": ["title", "priority"],
+    "version": 1
+  }'
+```
 
-Suggested fix:
-- Update `DynapiApplication` to scan `com.dynapi` (for example via `@SpringBootApplication(scanBasePackages = "com.dynapi")`) and then validate all routes.
+### Step C: Submit a form (public)
 
-## Project Structure
+```bash
+curl -s -X POST "$BASE_URL/form" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "group": "task-form",
+    "data": {
+      "title": "Ship v1",
+      "priority": 1
+    }
+  }'
+```
 
-- `src/main/java/com/dynapi/domain` domain models/services/events
-- `src/main/java/com/dynapi/application` ports/use-cases
-- `src/main/java/com/dynapi/infrastructure` persistence/messaging adapters
-- `src/main/java/com/dynapi/controller` REST controllers
-- `src/main/resources` runtime config and i18n messages
-- `src/test` test profile + tests
-- `sdd/memory-bank` planning/spec history
+### Step D: Query submitted data (public)
 
-## Project Workflow
+```bash
+curl -s -X POST "$BASE_URL/query/tasks" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "filters": [
+      { "field": "priority", "operator": "gte", "value": 1 }
+    ],
+    "page": 0,
+    "size": 10,
+    "sortBy": "priority",
+    "sortDirection": "DESC"
+  }'
+```
 
-This repo includes memory-bank/process files under `sdd/`.
-Before major behavior changes:
-- update specs in `sdd/memory-bank`
-- implement code
-- update progress/context files
+Supported filter operators include:
+- `eq`, `ne`, `gt`, `lt`, `gte`, `lte`, `in`, `regex`, `and`, `or`, `not`
+
+## 6. Main Endpoints
+
+- `POST /api/form` submit dynamic data by group
+- `POST /api/query/{entity}` query dynamic records
+- `GET/POST/PUT/DELETE /api/admin/schema/field-definitions*` manage fields
+- `GET/POST/PUT/DELETE /api/admin/schema/field-groups*` manage groups
+
+## 7. Configuration
+
+Main config file: `src/main/resources/application.yml`
+
+Key settings:
+- MongoDB: `spring.data.mongodb.*`
+- Kafka: `spring.kafka.*`
+- JWT secret: `security.jwt.secret` (base64-encoded key)
+- Context path: `server.servlet.context-path=/api`
+
+Test config: `src/test/resources/application-test.yml`
+
+## 8. Collaboration Workflow
+
+Team progress is tracked in GitHub (Issues/Projects), not local AI notes.
+
+- Open work as GitHub Issues (`Feature`, `Bug`, `Task`)
+- Move issue status in GitHub Projects
+- Every PR must link an issue (`Closes #...`, `Fixes #...`, `Refs #...`)
+
+Enforcement in this repo:
+- PR template: `.github/pull_request_template.md`
+- Required check: `.github/workflows/require-issue-link.yml`
+
+## 9. Project Layout
+
+- `src/main/java/com/dynapi/controller` active REST controllers
+- `src/main/java/com/dynapi/service` application services
+- `src/main/java/com/dynapi/domain` domain models and validators
+- `src/main/java/com/dynapi/repository` Mongo repositories
+- `src/main/java/com/dynapi/infrastructure` messaging integration
+- `src/main/resources` app config and messages
+- `src/test` integration and context tests
