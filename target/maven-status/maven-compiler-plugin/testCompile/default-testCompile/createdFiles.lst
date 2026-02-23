@@ -1,3 +1,4 @@
+com/dynapi/domain/validation/DynamicValidatorTest.class
 com/dynapi/integration/FormControllerIntegrationTest$FormControllerTestConfig.class
 com/dynapi/integration/QueryControllerIntegrationTest$QueryControllerTestConfig.class
 com/dynapi/integration/QueryControllerIntegrationTest.class

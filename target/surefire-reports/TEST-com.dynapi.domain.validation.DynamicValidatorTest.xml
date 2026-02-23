@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<testsuite xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="https://maven.apache.org/surefire/maven-surefire-plugin/xsd/surefire-test-report-3.0.xsd" version="3.0" name="com.dynapi.DynapiApplicationTests" time="7.082" tests="1" errors="0" skipped="0" failures="0">
+<testsuite xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="https://maven.apache.org/surefire/maven-surefire-plugin/xsd/surefire-test-report-3.0.xsd" version="3.0" name="com.dynapi.domain.validation.DynamicValidatorTest" time="0.077" tests="6" errors="0" skipped="0" failures="0">
   <properties>
     <property name="java.specification.version" value="21"/>
     <property name="sun.jnu.encoding" value="UTF-8"/>
@@ -63,120 +63,10 @@
     <property name="socksNonProxyHosts" value="local|*.local|169.254/16|*.169.254/16"/>
     <property name="java.class.version" value="65.0"/>
   </properties>
-  <testcase name="contextLoads" classname="com.dynapi.DynapiApplicationTests" time="0.831">
-    <system-out><![CDATA[23:28:21.520 [main] INFO org.springframework.test.context.support.AnnotationConfigContextLoaderUtils -- Could not detect default configuration classes for test class [com.dynapi.DynapiApplicationTests]: DynapiApplicationTests does not declare any static, non-private, non-final, nested classes annotated with @Configuration.
-23:28:21.661 [main] INFO org.springframework.boot.test.context.SpringBootTestContextBootstrapper -- Found @SpringBootConfiguration com.dynapi.DynapiApplication for test class com.dynapi.DynapiApplicationTests
-  .   ____          _            __ _ _
- /\\ / ___'_ __ _ _(_)_ __  __ _ \ \ \ \
-( ( )\___ | '_ | '_| | '_ \/ _` | \ \ \ \
- \\/  ___)| |_)| | | | | || (_| |  ) ) ) )
-  '  |____| .__|_| |_|_| |_\__, | / / / /
- =========|_|==============|___/=/_/_/_/
-
- :: Spring Boot ::                (v3.3.0)
-
-2026-02-22T23:28:22.154+03:00  INFO 72550 --- [           main] com.dynapi.DynapiApplicationTests        : Starting DynapiApplicationTests using Java 21.0.9 with PID 72550 (started by yunus.akin in /Users/yunus.akin/Documents/projects/Java/dynapi)
-2026-02-22T23:28:22.155+03:00 DEBUG 72550 --- [           main] com.dynapi.DynapiApplicationTests        : Running with Spring Boot v3.3.0, Spring v6.1.8
-2026-02-22T23:28:22.156+03:00  INFO 72550 --- [           main] com.dynapi.DynapiApplicationTests        : The following 1 profile is active: "test"
-2026-02-22T23:28:23.505+03:00  INFO 72550 --- [           main] .s.d.r.c.RepositoryConfigurationDelegate : Bootstrapping Spring Data MongoDB repositories in DEFAULT mode.
-2026-02-22T23:28:23.567+03:00  INFO 72550 --- [           main] .s.d.r.c.RepositoryConfigurationDelegate : Finished Spring Data repository scanning in 57 ms. Found 2 MongoDB repository interfaces.
-2026-02-22T23:28:24.234+03:00  INFO 72550 --- [           main] org.mongodb.driver.client                : MongoClient with metadata {"driver": {"name": "mongo-java-driver|sync|spring-boot", "version": "5.0.1"}, "os": {"type": "Darwin", "name": "Mac OS X", "architecture": "aarch64", "version": "26.3"}, "platform": "Java/Oracle Corporation/21.0.9+7-LTS-338"} created with settings MongoClientSettings{readPreference=primary, writeConcern=WriteConcern{w=null, wTimeout=null ms, journal=null}, retryWrites=true, retryReads=true, readConcern=ReadConcern{level=null}, credential=null, transportSettings=null, commandListeners=[], codecRegistry=ProvidersCodecRegistry{codecProviders=[ValueCodecProvider{}, BsonValueCodecProvider{}, DBRefCodecProvider{}, DBObjectCodecProvider{}, DocumentCodecProvider{}, CollectionCodecProvider{}, IterableCodecProvider{}, MapCodecProvider{}, GeoJsonCodecProvider{}, GridFSFileCodecProvider{}, Jsr310CodecProvider{}, JsonObjectCodecProvider{}, BsonCodecProvider{}, EnumCodecProvider{}, com.mongodb.client.model.mql.ExpressionCodecProvider@15214920, com.mongodb.Jep395RecordCodecProvider@784d9bc, com.mongodb.KotlinCodecProvider@3a0aaaf0]}, loggerSettings=LoggerSettings{maxDocumentLength=1000}, clusterSettings={hosts=[localhost:27017], srvServiceName=mongodb, mode=SINGLE, requiredClusterType=UNKNOWN, requiredReplicaSetName='null', serverSelector='null', clusterListeners='[]', serverSelectionTimeout='30000 ms', localThreshold='15 ms'}, socketSettings=SocketSettings{connectTimeoutMS=10000, readTimeoutMS=0, receiveBufferSize=0, proxySettings=ProxySettings{host=null, port=null, username=null, password=null}}, heartbeatSocketSettings=SocketSettings{connectTimeoutMS=10000, readTimeoutMS=10000, receiveBufferSize=0, proxySettings=ProxySettings{host=null, port=null, username=null, password=null}}, connectionPoolSettings=ConnectionPoolSettings{maxSize=100, minSize=0, maxWaitTimeMS=120000, maxConnectionLifeTimeMS=0, maxConnectionIdleTimeMS=0, maintenanceInitialDelayMS=0, maintenanceFrequencyMS=60000, connectionPoolListeners=[], maxConnecting=2}, serverSettings=ServerSettings{heartbeatFrequencyMS=10000, minHeartbeatFrequencyMS=500, serverListeners='[]', serverMonitorListeners='[]'}, sslSettings=SslSettings{enabled=false, invalidHostNameAllowed=false, context=null}, applicationName='null', compressorList=[], uuidRepresentation=JAVA_LEGACY, serverApi=null, autoEncryptionSettings=null, dnsClient=null, inetAddressResolver=null, contextProvider=null}
-2026-02-22T23:28:24.306+03:00  INFO 72550 --- [localhost:27017] org.mongodb.driver.cluster               : Monitor thread successfully connected to server with description ServerDescription{address=localhost:27017, type=STANDALONE, state=CONNECTED, ok=true, minWireVersion=0, maxWireVersion=21, maxDocumentSize=16777216, logicalSessionTimeoutMinutes=30, roundTripTimeNanos=29949875}
-2026-02-22T23:28:25.297+03:00  WARN 72550 --- [           main] .s.s.UserDetailsServiceAutoConfiguration : 
-
-Using generated security password: 5f6060fe-cf62-460e-abcf-84db2cf22471
-
-This generated password is for development use only. Your security configuration must be updated before running your application in production.
-
-2026-02-22T23:28:25.328+03:00  INFO 72550 --- [           main] r$InitializeUserDetailsManagerConfigurer : Global AuthenticationManager configured with UserDetailsService bean with name inMemoryUserDetailsManager
-2026-02-22T23:28:25.638+03:00  INFO 72550 --- [           main] o.s.s.web.DefaultSecurityFilterChain     : Will secure any request with [org.springframework.security.web.session.DisableEncodeUrlFilter@216328b2, org.springframework.security.web.context.request.async.WebAsyncManagerIntegrationFilter@5b0e9e0c, org.springframework.security.web.context.SecurityContextHolderFilter@304744a1, org.springframework.security.web.header.HeaderWriterFilter@68d8ae27, org.springframework.web.filter.CorsFilter@54234569, org.springframework.security.web.authentication.logout.LogoutFilter@1d806de6, com.dynapi.security.JwtAuthenticationFilter@21ea1d9d, org.springframework.security.web.savedrequest.RequestCacheAwareFilter@6814262d, org.springframework.security.web.servletapi.SecurityContextHolderAwareRequestFilter@75a9cc24, org.springframework.security.web.authentication.AnonymousAuthenticationFilter@19f497aa, org.springframework.security.web.session.SessionManagementFilter@6be50b35, org.springframework.security.web.access.ExceptionTranslationFilter@131c0b6f, org.springframework.security.web.access.intercept.AuthorizationFilter@2e7a9db7]
-2026-02-22T23:28:26.537+03:00  INFO 72550 --- [           main] o.a.k.clients.admin.AdminClientConfig    : AdminClientConfig values: 
-	auto.include.jmx.reporter = true
-	bootstrap.controllers = []
-	bootstrap.servers = [localhost:9092]
-	client.dns.lookup = use_all_dns_ips
-	client.id = 
-	connections.max.idle.ms = 300000
-	default.api.timeout.ms = 60000
-	enable.metrics.push = true
-	metadata.max.age.ms = 300000
-	metric.reporters = []
-	metrics.num.samples = 2
-	metrics.recording.level = INFO
-	metrics.sample.window.ms = 30000
-	receive.buffer.bytes = 65536
-	reconnect.backoff.max.ms = 1000
-	reconnect.backoff.ms = 50
-	request.timeout.ms = 30000
-	retries = 2147483647
-	retry.backoff.max.ms = 1000
-	retry.backoff.ms = 100
-	sasl.client.callback.handler.class = null
-	sasl.jaas.config = null
-	sasl.kerberos.kinit.cmd = /usr/bin/kinit
-	sasl.kerberos.min.time.before.relogin = 60000
-	sasl.kerberos.service.name = null
-	sasl.kerberos.ticket.renew.jitter = 0.05
-	sasl.kerberos.ticket.renew.window.factor = 0.8
-	sasl.login.callback.handler.class = null
-	sasl.login.class = null
-	sasl.login.connect.timeout.ms = null
-	sasl.login.read.timeout.ms = null
-	sasl.login.refresh.buffer.seconds = 300
-	sasl.login.refresh.min.period.seconds = 60
-	sasl.login.refresh.window.factor = 0.8
-	sasl.login.refresh.window.jitter = 0.05
-	sasl.login.retry.backoff.max.ms = 10000
-	sasl.login.retry.backoff.ms = 100
-	sasl.mechanism = GSSAPI
-	sasl.oauthbearer.clock.skew.seconds = 30
-	sasl.oauthbearer.expected.audience = null
-	sasl.oauthbearer.expected.issuer = null
-	sasl.oauthbearer.jwks.endpoint.refresh.ms = 3600000
-	sasl.oauthbearer.jwks.endpoint.retry.backoff.max.ms = 10000
-	sasl.oauthbearer.jwks.endpoint.retry.backoff.ms = 100
-	sasl.oauthbearer.jwks.endpoint.url = null
-	sasl.oauthbearer.scope.claim.name = scope
-	sasl.oauthbearer.sub.claim.name = sub
-	sasl.oauthbearer.token.endpoint.url = null
-	security.protocol = PLAINTEXT
-	security.providers = null
-	send.buffer.bytes = 131072
-	socket.connection.setup.timeout.max.ms = 30000
-	socket.connection.setup.timeout.ms = 10000
-	ssl.cipher.suites = null
-	ssl.enabled.protocols = [TLSv1.2, TLSv1.3]
-	ssl.endpoint.identification.algorithm = https
-	ssl.engine.factory.class = null
-	ssl.key.password = null
-	ssl.keymanager.algorithm = SunX509
-	ssl.keystore.certificate.chain = null
-	ssl.keystore.key = null
-	ssl.keystore.location = null
-	ssl.keystore.password = null
-	ssl.keystore.type = JKS
-	ssl.protocol = TLSv1.3
-	ssl.provider = null
-	ssl.secure.random.implementation = null
-	ssl.trustmanager.algorithm = PKIX
-	ssl.truststore.certificates = null
-	ssl.truststore.location = null
-	ssl.truststore.password = null
-	ssl.truststore.type = JKS
-
-2026-02-22T23:28:27.019+03:00  INFO 72550 --- [           main] o.a.kafka.common.utils.AppInfoParser     : Kafka version: 3.7.0
-2026-02-22T23:28:27.021+03:00  INFO 72550 --- [           main] o.a.kafka.common.utils.AppInfoParser     : Kafka commitId: 2ae524ed625438c5
-2026-02-22T23:28:27.021+03:00  INFO 72550 --- [           main] o.a.kafka.common.utils.AppInfoParser     : Kafka startTimeMs: 1771792107018
-2026-02-22T23:28:27.383+03:00  INFO 72550 --- [| adminclient-1] o.a.kafka.common.utils.AppInfoParser     : App info kafka.admin.client for adminclient-1 unregistered
-2026-02-22T23:28:27.390+03:00  INFO 72550 --- [| adminclient-1] o.apache.kafka.common.metrics.Metrics    : Metrics scheduler closed
-2026-02-22T23:28:27.390+03:00  INFO 72550 --- [| adminclient-1] o.apache.kafka.common.metrics.Metrics    : Closing reporter org.apache.kafka.common.metrics.JmxReporter
-2026-02-22T23:28:27.390+03:00  INFO 72550 --- [| adminclient-1] o.apache.kafka.common.metrics.Metrics    : Metrics reporters closed
-2026-02-22T23:28:27.407+03:00  INFO 72550 --- [           main] com.dynapi.DynapiApplicationTests        : Started DynapiApplicationTests in 5.588 seconds (process running for 7.271)
-]]></system-out>
-    <system-err><![CDATA[WARNING: A Java agent has been loaded dynamically (/Users/yunus.akin/.m2/repository/net/bytebuddy/byte-buddy-agent/1.14.16/byte-buddy-agent-1.14.16.jar)
-WARNING: If a serviceability tool is in use, please run with -XX:+EnableDynamicAgentLoading to hide this warning
-WARNING: If a serviceability tool is not in use, please run with -Djdk.instrument.traceUsage for more information
-WARNING: Dynamic loading of agents will be disallowed by default in a future release
-]]></system-err>
-  </testcase>
+  <testcase name="validate_rejectsRegexViolation_onNestedObject" classname="com.dynapi.domain.validation.DynamicValidatorTest" time="0.047"/>
+  <testcase name="validate_rejectsMinMaxViolation_onStringAndArray" classname="com.dynapi.domain.validation.DynamicValidatorTest" time="0.003"/>
+  <testcase name="validate_rejectsNestedArrayItemViolation_withPrecisePath" classname="com.dynapi.domain.validation.DynamicValidatorTest" time="0.005"/>
+  <testcase name="validate_acceptsPayload_whenRulesAreSatisfied" classname="com.dynapi.domain.validation.DynamicValidatorTest" time="0.005"/>
+  <testcase name="validate_rejectsMissingRequiredIfField" classname="com.dynapi.domain.validation.DynamicValidatorTest" time="0.002"/>
+  <testcase name="validate_rejectsEnumViolation" classname="com.dynapi.domain.validation.DynamicValidatorTest" time="0.001"/>
 </testsuite>

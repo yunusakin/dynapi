@@ -49,6 +49,7 @@ com/dynapi/domain/event/DomainEvent.class
 com/dynapi/service/FormSubmissionService.class
 com/dynapi/domain/validation/DynamicValidator.class
 com/dynapi/dto/ApiResponse$Metadata.class
+com/dynapi/domain/model/FieldDefinition$RequiredIfRule.class
 com/dynapi/interfaces/rest/FormSubmissionController.class
 com/dynapi/domain/service/FormSubmissionDomainServiceImpl.class
 com/dynapi/domain/model/DynamicQuery.class

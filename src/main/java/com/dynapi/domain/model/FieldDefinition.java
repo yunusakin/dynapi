@@ -14,7 +14,20 @@ public class FieldDefinition {
     @NotNull
     private FieldType type;
     private boolean required;
+    private Double min;
+    private Double max;
+    private String regex;
+    private List<Object> enumValues;
+    private RequiredIfRule requiredIf;
     private List<FieldDefinition> subFields;
     private Integer version; // Schema versioning
     private List<String> permissions; // Field-level permissions
+
+    @Data
+    public static class RequiredIfRule {
+        @NotBlank
+        private String field;
+        private Object value;
+        private String operator = "eq";
+    }
 }
