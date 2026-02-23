@@ -21,3 +21,10 @@ server:
 security:
   jwt:
     secret: ZHluYXBpLWRldi1zZWNyZXQta2V5LWNoYW5nZS1tZS0xMjM0NTY3ODkw
+
+dynapi:
+  query:
+    guardrails:
+      max-page-size: 100
+      max-filter-depth: 3
+      max-rule-count: 20

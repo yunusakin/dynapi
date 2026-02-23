@@ -22,6 +22,7 @@ import java.util.Locale;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.verify;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -85,6 +86,28 @@ class FormControllerIntegrationTest {
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.success").value(false))
                 .andExpect(jsonPath("$.message").value("Group not found"));
+    }
+
+    @Test
+    void submitFormByGroup_returnsSuccessEnvelope() throws Exception {
+        String requestBody = """
+                {
+                  "name": "Alice"
+                }
+                """;
+
+        mockMvc.perform(post("/api/forms/profile/submit")
+                        .contextPath("/api")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(requestBody))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.message").value("Form submitted successfully"));
+
+        var requestCaptor = org.mockito.ArgumentCaptor.forClass(FormSubmissionRequest.class);
+        verify(formSubmissionService).submitForm(requestCaptor.capture(), any(Locale.class));
+        assertThat(requestCaptor.getValue().getGroup()).isEqualTo("profile");
+        assertThat(requestCaptor.getValue().getData()).containsEntry("name", "Alice");
     }
 
     @TestConfiguration

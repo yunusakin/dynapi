@@ -1,0 +1,1029 @@
+{
+  "info": {
+    "_postman_id": "1f2d43c2-f0c0-4f74-8fef-0adf6073f100",
+    "name": "Dynapi API",
+    "description": "Dynapi backend API collection with success and error scenario examples for every active endpoint. Includes app-level error envelopes (400/403/404/500) and endpoint-specific success examples.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:8080/api"
+    },
+    {
+      "key": "adminToken",
+      "value": "<paste-admin-jwt-here>"
+    },
+    {
+      "key": "entity",
+      "value": "tasks"
+    },
+    {
+      "key": "fieldDefinitionId",
+      "value": "priority"
+    },
+    {
+      "key": "fieldGroupId",
+      "value": "task-form"
+    },
+    {
+      "key": "groupId",
+      "value": "task-form"
+    }
+  ],
+  "item": [
+    {
+      "name": "Form API",
+      "item": [
+        {
+          "name": "POST /form - Submit Form",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"group\": \"task-form\",\n  \"data\": {\n    \"title\": \"Ship v1\",\n    \"priority\": 1\n  }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/form",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "form"
+              ]
+            },
+            "description": "Submit dynamic payload using a predefined field group."
+          },
+          "response": [
+            {
+              "name": "Success",
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"success\": true,\n  \"message\": \"Form submitted successfully\",\n  \"data\": null,\n  \"errors\": null,\n  \"metadata\": null\n}"
+            },
+            {
+              "name": "Bad Request - Validation Error",
+              "status": "Bad Request",
+              "code": 400,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"success\": false,\n  \"message\": \"Field is required\",\n  \"data\": null,\n  \"errors\": {\n    \"title\": \"Field is required\"\n  },\n  \"metadata\": null\n}"
+            },
+            {
+              "name": "Bad Request - Group Not Found",
+              "status": "Bad Request",
+              "code": 400,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"success\": false,\n  \"message\": \"Group not found\",\n  \"data\": null,\n  \"errors\": null,\n  \"metadata\": null\n}"
+            },
+            {
+              "name": "Not Found - Entity (If Raised by Service)",
+              "status": "Not Found",
+              "code": 404,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"success\": false,\n  \"message\": \"Entity not found\",\n  \"data\": null,\n  \"errors\": null,\n  \"metadata\": null\n}"
+            },
+            {
+              "name": "Internal Server Error",
+              "status": "Internal Server Error",
+              "code": 500,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"success\": false,\n  \"message\": \"Internal server error\",\n  \"data\": null,\n  \"errors\": null,\n  \"metadata\": null\n}"
+            }
+          ]
+        },
+        {
+          "name": "POST /forms/:groupId/submit - Submit Form",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Accept-Language",
+                "value": "en-US",
+                "disabled": true
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Ship v1\",\n  \"priority\": 1\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/forms/{{groupId}}/submit",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "forms",
+                "{{groupId}}",
+                "submit"
+              ]
+            },
+            "description": "Submit dynamic payload using path-based group id. Public endpoint."
+          },
+          "response": [
+            {
+              "name": "Success",
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"success\": true,\n  \"message\": \"Form submitted successfully\",\n  \"data\": null,\n  \"errors\": null,\n  \"metadata\": null\n}"
+            },
+            {
+              "name": "Bad Request - Validation Error",
+              "status": "Bad Request",
+              "code": 400,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"success\": false,\n  \"message\": \"Field is required\",\n  \"data\": null,\n  \"errors\": {\n    \"title\": \"Field is required\"\n  },\n  \"metadata\": null\n}"
+            },
+            {
+              "name": "Bad Request - Group Not Found",
+              "status": "Bad Request",
+              "code": 400,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"success\": false,\n  \"message\": \"Group not found\",\n  \"data\": null,\n  \"errors\": null,\n  \"metadata\": null\n}"
+            },
+            {
+              "name": "Not Found - Entity (If Raised by Service)",
+              "status": "Not Found",
+              "code": 404,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"success\": false,\n  \"message\": \"Entity not found\",\n  \"data\": null,\n  \"errors\": null,\n  \"metadata\": null\n}"
+            },
+            {
+              "name": "Internal Server Error",
+              "status": "Internal Server Error",
+              "code": 500,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"success\": false,\n  \"message\": \"Internal server error\",\n  \"data\": null,\n  \"errors\": null,\n  \"metadata\": null\n}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Query API",
+      "item": [
+        {
+          "name": "POST /query/:entity - Query Records",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"filters\": [\n    { \"field\": \"priority\", \"operator\": \"gte\", \"value\": 1 }\n  ],\n  \"page\": 0,\n  \"size\": 10,\n  \"sortBy\": \"priority\",\n  \"sortDirection\": \"DESC\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/query/{{entity}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "query",
+                "{{entity}}"
+              ]
+            },
+            "description": "Query dynamic records with guarded filters, sorting, and pagination."
+          },
+          "response": [
+            {
+              "name": "Success",
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"success\": true,\n  \"message\": \"Query successful\",\n  \"data\": {\n    \"page\": 0,\n    \"size\": 10,\n    \"totalElements\": 1,\n    \"content\": [\n      {\n        \"id\": \"66f0f4c2d31234ab12345678\",\n        \"data\": {\n          \"title\": \"Ship v1\",\n          \"priority\": 2\n        }\n      }\n    ],\n    \"sortBy\": \"priority\",\n    \"sortDirection\": \"DESC\"\n  },\n  \"errors\": null,\n  \"metadata\": null\n}"
+            },
+            {
+              "name": "Bad Request - Size Exceeds Max",
+              "status": "Bad Request",
+              "code": 400,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"success\": false,\n  \"message\": \"Size exceeds max page size: 100\",\n  \"data\": null,\n  \"errors\": null,\n  \"metadata\": null\n}"
+            },
+            {
+              "name": "Bad Request - Filter Field Not Allowed",
+              "status": "Bad Request",
+              "code": 400,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"success\": false,\n  \"message\": \"Filtering by field is not allowed: unknownField\",\n  \"data\": null,\n  \"errors\": null,\n  \"metadata\": null\n}"
+            },
+            {
+              "name": "Bad Request - Operator Not Allowed",
+              "status": "Bad Request",
+              "code": 400,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"success\": false,\n  \"message\": \"Operator 'regex' is not allowed for field 'priority' of type NUMBER\",\n  \"data\": null,\n  \"errors\": null,\n  \"metadata\": null\n}"
+            },
+            {
+              "name": "Bad Request - Filter Depth Exceeded",
+              "status": "Bad Request",
+              "code": 400,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"success\": false,\n  \"message\": \"Filter depth exceeds max: 3\",\n  \"data\": null,\n  \"errors\": null,\n  \"metadata\": null\n}"
+            },
+            {
+              "name": "Bad Request - Schema Group Not Found",
+              "status": "Bad Request",
+              "code": 400,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"success\": false,\n  \"message\": \"Schema group not found for entity: tasks\",\n  \"data\": null,\n  \"errors\": null,\n  \"metadata\": null\n}"
+            },
+            {
+              "name": "Not Found - Entity (If Raised by Service)",
+              "status": "Not Found",
+              "code": 404,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"success\": false,\n  \"message\": \"Entity not found\",\n  \"data\": null,\n  \"errors\": null,\n  \"metadata\": null\n}"
+            },
+            {
+              "name": "Internal Server Error",
+              "status": "Internal Server Error",
+              "code": 500,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"success\": false,\n  \"message\": \"Internal server error\",\n  \"data\": null,\n  \"errors\": null,\n  \"metadata\": null\n}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Schema Admin - Field Definitions",
+      "item": [
+        {
+          "name": "POST /admin/schema/field-definitions - Create Field Definition",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"fieldName\": \"priority\",\n  \"type\": \"NUMBER\",\n  \"required\": false,\n  \"min\": 1,\n  \"max\": 5,\n  \"version\": 1\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/admin/schema/field-definitions",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "admin",
+                "schema",
+                "field-definitions"
+              ]
+            }
+          },
+          "response": [
+            {
+              "name": "Success",
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "body": "{\n  \"success\": true,\n  \"message\": \"Created\",\n  \"data\": {\n    \"fieldName\": \"priority\",\n    \"type\": \"NUMBER\",\n    \"required\": false,\n    \"min\": 1.0,\n    \"max\": 5.0,\n    \"regex\": null,\n    \"enumValues\": null,\n    \"requiredIf\": null,\n    \"subFields\": null,\n    \"version\": 1,\n    \"permissions\": null\n  },\n  \"errors\": null,\n  \"metadata\": null\n}"
+            },
+            {
+              "name": "Bad Request - Illegal Argument",
+              "status": "Bad Request",
+              "code": 400,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"success\": false,\n  \"message\": \"Invalid request\",\n  \"data\": null,\n  \"errors\": null,\n  \"metadata\": null\n}"
+            },
+            {
+              "name": "Forbidden - Missing or Non-Admin Token",
+              "status": "Forbidden",
+              "code": 403,
+              "_postman_previewlanguage": "json",
+              "body": "{\n  \"timestamp\": \"2026-02-24T00:00:00.000+00:00\",\n  \"status\": 403,\n  \"error\": \"Forbidden\",\n  \"path\": \"/api/admin/schema/field-definitions\"\n}"
+            },
+            {
+              "name": "Not Found - Entity (If Raised by Service)",
+              "status": "Not Found",
+              "code": 404,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"success\": false,\n  \"message\": \"Entity not found\",\n  \"data\": null,\n  \"errors\": null,\n  \"metadata\": null\n}"
+            },
+            {
+              "name": "Internal Server Error",
+              "status": "Internal Server Error",
+              "code": 500,
+              "_postman_previewlanguage": "json",
+              "body": "{\n  \"success\": false,\n  \"message\": \"Internal server error\",\n  \"data\": null,\n  \"errors\": null,\n  \"metadata\": null\n}"
+            }
+          ]
+        },
+        {
+          "name": "PUT /admin/schema/field-definitions/:id - Update Field Definition",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"type\": \"NUMBER\",\n  \"required\": true,\n  \"min\": 1,\n  \"max\": 10\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/admin/schema/field-definitions/{{fieldDefinitionId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "admin",
+                "schema",
+                "field-definitions",
+                "{{fieldDefinitionId}}"
+              ]
+            }
+          },
+          "response": [
+            {
+              "name": "Success",
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "body": "{\n  \"success\": true,\n  \"message\": \"Updated\",\n  \"data\": {\n    \"fieldName\": \"priority\",\n    \"type\": \"NUMBER\",\n    \"required\": true\n  },\n  \"errors\": null,\n  \"metadata\": null\n}"
+            },
+            {
+              "name": "Bad Request - Illegal Argument",
+              "status": "Bad Request",
+              "code": 400,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"success\": false,\n  \"message\": \"Invalid request\",\n  \"data\": null,\n  \"errors\": null,\n  \"metadata\": null\n}"
+            },
+            {
+              "name": "Forbidden - Missing or Non-Admin Token",
+              "status": "Forbidden",
+              "code": 403,
+              "_postman_previewlanguage": "json",
+              "body": "{\n  \"timestamp\": \"2026-02-24T00:00:00.000+00:00\",\n  \"status\": 403,\n  \"error\": \"Forbidden\",\n  \"path\": \"/api/admin/schema/field-definitions/priority\"\n}"
+            },
+            {
+              "name": "Not Found - Entity (If Raised by Service)",
+              "status": "Not Found",
+              "code": 404,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"success\": false,\n  \"message\": \"Entity not found\",\n  \"data\": null,\n  \"errors\": null,\n  \"metadata\": null\n}"
+            },
+            {
+              "name": "Internal Server Error",
+              "status": "Internal Server Error",
+              "code": 500,
+              "_postman_previewlanguage": "json",
+              "body": "{\n  \"success\": false,\n  \"message\": \"Internal server error\",\n  \"data\": null,\n  \"errors\": null,\n  \"metadata\": null\n}"
+            }
+          ]
+        },
+        {
+          "name": "DELETE /admin/schema/field-definitions/:id - Delete Field Definition",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/admin/schema/field-definitions/{{fieldDefinitionId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "admin",
+                "schema",
+                "field-definitions",
+                "{{fieldDefinitionId}}"
+              ]
+            }
+          },
+          "response": [
+            {
+              "name": "Success",
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "body": "{\n  \"success\": true,\n  \"message\": \"Deleted\",\n  \"data\": null,\n  \"errors\": null,\n  \"metadata\": null\n}"
+            },
+            {
+              "name": "Bad Request - Illegal Argument",
+              "status": "Bad Request",
+              "code": 400,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"success\": false,\n  \"message\": \"Invalid request\",\n  \"data\": null,\n  \"errors\": null,\n  \"metadata\": null\n}"
+            },
+            {
+              "name": "Forbidden - Missing or Non-Admin Token",
+              "status": "Forbidden",
+              "code": 403,
+              "_postman_previewlanguage": "json",
+              "body": "{\n  \"timestamp\": \"2026-02-24T00:00:00.000+00:00\",\n  \"status\": 403,\n  \"error\": \"Forbidden\",\n  \"path\": \"/api/admin/schema/field-definitions/priority\"\n}"
+            },
+            {
+              "name": "Not Found - Entity (If Raised by Service)",
+              "status": "Not Found",
+              "code": 404,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"success\": false,\n  \"message\": \"Entity not found\",\n  \"data\": null,\n  \"errors\": null,\n  \"metadata\": null\n}"
+            },
+            {
+              "name": "Internal Server Error",
+              "status": "Internal Server Error",
+              "code": 500,
+              "_postman_previewlanguage": "json",
+              "body": "{\n  \"success\": false,\n  \"message\": \"Internal server error\",\n  \"data\": null,\n  \"errors\": null,\n  \"metadata\": null\n}"
+            }
+          ]
+        },
+        {
+          "name": "GET /admin/schema/field-definitions - List Field Definitions",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/admin/schema/field-definitions",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "admin",
+                "schema",
+                "field-definitions"
+              ]
+            }
+          },
+          "response": [
+            {
+              "name": "Success",
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "body": "{\n  \"success\": true,\n  \"message\": \"Fetched\",\n  \"data\": [\n    {\n      \"fieldName\": \"priority\",\n      \"type\": \"NUMBER\"\n    }\n  ],\n  \"errors\": null,\n  \"metadata\": null\n}"
+            },
+            {
+              "name": "Bad Request - Illegal Argument",
+              "status": "Bad Request",
+              "code": 400,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"success\": false,\n  \"message\": \"Invalid request\",\n  \"data\": null,\n  \"errors\": null,\n  \"metadata\": null\n}"
+            },
+            {
+              "name": "Forbidden - Missing or Non-Admin Token",
+              "status": "Forbidden",
+              "code": 403,
+              "_postman_previewlanguage": "json",
+              "body": "{\n  \"timestamp\": \"2026-02-24T00:00:00.000+00:00\",\n  \"status\": 403,\n  \"error\": \"Forbidden\",\n  \"path\": \"/api/admin/schema/field-definitions\"\n}"
+            },
+            {
+              "name": "Not Found - Entity (If Raised by Service)",
+              "status": "Not Found",
+              "code": 404,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"success\": false,\n  \"message\": \"Entity not found\",\n  \"data\": null,\n  \"errors\": null,\n  \"metadata\": null\n}"
+            },
+            {
+              "name": "Internal Server Error",
+              "status": "Internal Server Error",
+              "code": 500,
+              "_postman_previewlanguage": "json",
+              "body": "{\n  \"success\": false,\n  \"message\": \"Internal server error\",\n  \"data\": null,\n  \"errors\": null,\n  \"metadata\": null\n}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Schema Admin - Field Groups",
+      "item": [
+        {
+          "name": "POST /admin/schema/field-groups - Create Field Group",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"task-form\",\n  \"entity\": \"tasks\",\n  \"fieldNames\": [\"title\", \"priority\"],\n  \"version\": 1\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/admin/schema/field-groups",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "admin",
+                "schema",
+                "field-groups"
+              ]
+            }
+          },
+          "response": [
+            {
+              "name": "Success",
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "body": "{\n  \"success\": true,\n  \"message\": \"Created\",\n  \"data\": {\n    \"name\": \"task-form\",\n    \"entity\": \"tasks\",\n    \"fieldNames\": [\"title\", \"priority\"]\n  },\n  \"errors\": null,\n  \"metadata\": null\n}"
+            },
+            {
+              "name": "Bad Request - Illegal Argument",
+              "status": "Bad Request",
+              "code": 400,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"success\": false,\n  \"message\": \"Invalid request\",\n  \"data\": null,\n  \"errors\": null,\n  \"metadata\": null\n}"
+            },
+            {
+              "name": "Forbidden - Missing or Non-Admin Token",
+              "status": "Forbidden",
+              "code": 403,
+              "_postman_previewlanguage": "json",
+              "body": "{\n  \"timestamp\": \"2026-02-24T00:00:00.000+00:00\",\n  \"status\": 403,\n  \"error\": \"Forbidden\",\n  \"path\": \"/api/admin/schema/field-groups\"\n}"
+            },
+            {
+              "name": "Not Found - Entity (If Raised by Service)",
+              "status": "Not Found",
+              "code": 404,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"success\": false,\n  \"message\": \"Entity not found\",\n  \"data\": null,\n  \"errors\": null,\n  \"metadata\": null\n}"
+            },
+            {
+              "name": "Internal Server Error",
+              "status": "Internal Server Error",
+              "code": 500,
+              "_postman_previewlanguage": "json",
+              "body": "{\n  \"success\": false,\n  \"message\": \"Internal server error\",\n  \"data\": null,\n  \"errors\": null,\n  \"metadata\": null\n}"
+            }
+          ]
+        },
+        {
+          "name": "PUT /admin/schema/field-groups/:id - Update Field Group",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"entity\": \"tasks\",\n  \"fieldNames\": [\"title\", \"priority\", \"status\"],\n  \"version\": 2\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/admin/schema/field-groups/{{fieldGroupId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "admin",
+                "schema",
+                "field-groups",
+                "{{fieldGroupId}}"
+              ]
+            }
+          },
+          "response": [
+            {
+              "name": "Success",
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "body": "{\n  \"success\": true,\n  \"message\": \"Updated\",\n  \"data\": {\n    \"name\": \"task-form\",\n    \"entity\": \"tasks\",\n    \"fieldNames\": [\"title\", \"priority\", \"status\"]\n  },\n  \"errors\": null,\n  \"metadata\": null\n}"
+            },
+            {
+              "name": "Bad Request - Illegal Argument",
+              "status": "Bad Request",
+              "code": 400,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"success\": false,\n  \"message\": \"Invalid request\",\n  \"data\": null,\n  \"errors\": null,\n  \"metadata\": null\n}"
+            },
+            {
+              "name": "Forbidden - Missing or Non-Admin Token",
+              "status": "Forbidden",
+              "code": 403,
+              "_postman_previewlanguage": "json",
+              "body": "{\n  \"timestamp\": \"2026-02-24T00:00:00.000+00:00\",\n  \"status\": 403,\n  \"error\": \"Forbidden\",\n  \"path\": \"/api/admin/schema/field-groups/task-form\"\n}"
+            },
+            {
+              "name": "Not Found - Entity (If Raised by Service)",
+              "status": "Not Found",
+              "code": 404,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"success\": false,\n  \"message\": \"Entity not found\",\n  \"data\": null,\n  \"errors\": null,\n  \"metadata\": null\n}"
+            },
+            {
+              "name": "Internal Server Error",
+              "status": "Internal Server Error",
+              "code": 500,
+              "_postman_previewlanguage": "json",
+              "body": "{\n  \"success\": false,\n  \"message\": \"Internal server error\",\n  \"data\": null,\n  \"errors\": null,\n  \"metadata\": null\n}"
+            }
+          ]
+        },
+        {
+          "name": "DELETE /admin/schema/field-groups/:id - Delete Field Group",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/admin/schema/field-groups/{{fieldGroupId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "admin",
+                "schema",
+                "field-groups",
+                "{{fieldGroupId}}"
+              ]
+            }
+          },
+          "response": [
+            {
+              "name": "Success",
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "body": "{\n  \"success\": true,\n  \"message\": \"Deleted\",\n  \"data\": null,\n  \"errors\": null,\n  \"metadata\": null\n}"
+            },
+            {
+              "name": "Bad Request - Illegal Argument",
+              "status": "Bad Request",
+              "code": 400,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"success\": false,\n  \"message\": \"Invalid request\",\n  \"data\": null,\n  \"errors\": null,\n  \"metadata\": null\n}"
+            },
+            {
+              "name": "Forbidden - Missing or Non-Admin Token",
+              "status": "Forbidden",
+              "code": 403,
+              "_postman_previewlanguage": "json",
+              "body": "{\n  \"timestamp\": \"2026-02-24T00:00:00.000+00:00\",\n  \"status\": 403,\n  \"error\": \"Forbidden\",\n  \"path\": \"/api/admin/schema/field-groups/task-form\"\n}"
+            },
+            {
+              "name": "Not Found - Entity (If Raised by Service)",
+              "status": "Not Found",
+              "code": 404,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"success\": false,\n  \"message\": \"Entity not found\",\n  \"data\": null,\n  \"errors\": null,\n  \"metadata\": null\n}"
+            },
+            {
+              "name": "Internal Server Error",
+              "status": "Internal Server Error",
+              "code": 500,
+              "_postman_previewlanguage": "json",
+              "body": "{\n  \"success\": false,\n  \"message\": \"Internal server error\",\n  \"data\": null,\n  \"errors\": null,\n  \"metadata\": null\n}"
+            }
+          ]
+        },
+        {
+          "name": "GET /admin/schema/field-groups - List Field Groups",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/admin/schema/field-groups",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "admin",
+                "schema",
+                "field-groups"
+              ]
+            }
+          },
+          "response": [
+            {
+              "name": "Success",
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "body": "{\n  \"success\": true,\n  \"message\": \"Fetched\",\n  \"data\": [\n    {\n      \"name\": \"task-form\",\n      \"entity\": \"tasks\",\n      \"fieldNames\": [\"title\", \"priority\"]\n    }\n  ],\n  \"errors\": null,\n  \"metadata\": null\n}"
+            },
+            {
+              "name": "Bad Request - Illegal Argument",
+              "status": "Bad Request",
+              "code": 400,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"success\": false,\n  \"message\": \"Invalid request\",\n  \"data\": null,\n  \"errors\": null,\n  \"metadata\": null\n}"
+            },
+            {
+              "name": "Forbidden - Missing or Non-Admin Token",
+              "status": "Forbidden",
+              "code": 403,
+              "_postman_previewlanguage": "json",
+              "body": "{\n  \"timestamp\": \"2026-02-24T00:00:00.000+00:00\",\n  \"status\": 403,\n  \"error\": \"Forbidden\",\n  \"path\": \"/api/admin/schema/field-groups\"\n}"
+            },
+            {
+              "name": "Not Found - Entity (If Raised by Service)",
+              "status": "Not Found",
+              "code": 404,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"success\": false,\n  \"message\": \"Entity not found\",\n  \"data\": null,\n  \"errors\": null,\n  \"metadata\": null\n}"
+            },
+            {
+              "name": "Internal Server Error",
+              "status": "Internal Server Error",
+              "code": 500,
+              "_postman_previewlanguage": "json",
+              "body": "{\n  \"success\": false,\n  \"message\": \"Internal server error\",\n  \"data\": null,\n  \"errors\": null,\n  \"metadata\": null\n}"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

@@ -10,6 +10,17 @@ coverage/
 .tmp/
 .cache/
 .validate-tmp/
+target/
+*.iml
+.vscode/
+.classpath
+.project
+.settings/
+out/
+hs_err_pid*
+replay_pid*
+postman/*.postman_environment.json
+!postman/*.postman_environment.template.json
 
 # Local AI workflow files (not shared via git)
 sdd/
