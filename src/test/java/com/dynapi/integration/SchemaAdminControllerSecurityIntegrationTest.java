@@ -1,6 +1,7 @@
 package com.dynapi.integration;
 
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.request;
@@ -92,6 +93,8 @@ class SchemaAdminControllerSecurityIntegrationTest {
         .thenReturn(schemaVersion("users", 1, SchemaLifecycleStatus.PUBLISHED));
     when(schemaLifecycleService.deprecate(anyString()))
         .thenReturn(schemaVersion("users", 1, SchemaLifecycleStatus.DEPRECATED));
+    when(schemaLifecycleService.rollback(anyString(), anyInt()))
+        .thenReturn(schemaVersion("users", 2, SchemaLifecycleStatus.PUBLISHED));
     when(schemaLifecycleService.listVersions(anyString()))
         .thenReturn(List.of(schemaVersion("users", 1, SchemaLifecycleStatus.PUBLISHED)));
   }
@@ -186,6 +189,7 @@ class SchemaAdminControllerSecurityIntegrationTest {
         Arguments.of("GET", "/api/admin/schema/field-groups", null),
         Arguments.of("POST", "/api/admin/schema/field-groups/profile/publish", null),
         Arguments.of("POST", "/api/admin/schema/entities/users/deprecate", null),
+        Arguments.of("POST", "/api/admin/schema/entities/users/rollback/1", null),
         Arguments.of("GET", "/api/admin/schema/entities/users/versions", null));
   }
 

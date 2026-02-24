@@ -1248,6 +1248,81 @@
               ]
             }
           ]
+        },
+        {
+          "name": "POST /admin/schema/entities/:entity/rollback/:version - Rollback to Version",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/admin/schema/entities/{{entity}}/rollback/{{rollbackVersion}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "admin",
+                "schema",
+                "entities",
+                "{{entity}}",
+                "rollback",
+                "{{rollbackVersion}}"
+              ]
+            },
+            "description": "Rollback entity runtime schema to a previous version by publishing a new snapshot from that version."
+          },
+          "response": [
+            {
+              "name": "Success",
+              "code": 200,
+              "status": "OK",
+              "_postman_previewlanguage": "json",
+              "body": "{\n  \"success\": true,\n  \"message\": \"Rolled back\",\n  \"data\": {\n    \"entityName\": \"tasks\",\n    \"version\": 3,\n    \"status\": \"PUBLISHED\"\n  },\n  \"errors\": null,\n  \"metadata\": null\n}",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ]
+            },
+            {
+              "name": "Bad Request - Version Not Found",
+              "code": 400,
+              "status": "Bad Request",
+              "_postman_previewlanguage": "json",
+              "body": "{\n  \"title\": \"Invalid Request\",\n  \"status\": 400,\n  \"detail\": \"Schema version not found for entity 'tasks' and version 99\"\n}",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ]
+            },
+            {
+              "name": "Forbidden - Missing or Non-Admin Token",
+              "code": 403,
+              "status": "Forbidden",
+              "_postman_previewlanguage": "json",
+              "body": "{\n  \"timestamp\": \"2026-02-24T00:00:00.000+00:00\",\n  \"status\": 403,\n  \"error\": \"Forbidden\",\n  \"path\": \"/api/admin/schema/entities/tasks/rollback/1\"\n}"
+            },
+            {
+              "name": "Internal Server Error",
+              "code": 500,
+              "status": "Internal Server Error",
+              "_postman_previewlanguage": "json",
+              "body": "{\n  \"title\": \"Internal Server Error\",\n  \"status\": 500,\n  \"detail\": \"Internal server error\"\n}",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ]
+            }
+          ]
         }
       ]
     }

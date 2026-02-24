@@ -19,7 +19,9 @@ public class FormController {
   private final FormSubmissionService formSubmissionService;
 
   @PostMapping
-  @Operation(summary = "Submit Dynamic Form", description = "Submits dynamic form payload for a schema group.")
+  @Operation(
+      summary = "Submit Dynamic Form",
+      description = "Submits dynamic form payload for a schema group.")
   public ApiResponse<Void> submitForm(@RequestBody @Valid FormSubmissionRequest request) {
     formSubmissionService.submitForm(request, LocaleContextHolder.getLocale());
     return ApiResponse.success(null, "Form submitted successfully");

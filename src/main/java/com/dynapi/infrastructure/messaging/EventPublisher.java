@@ -6,21 +6,21 @@ import org.springframework.stereotype.Service;
 
 @Service
 public class EventPublisher {
-    private final KafkaTemplate<String, Object> kafkaTemplate;
+  private final KafkaTemplate<String, Object> kafkaTemplate;
 
-    public EventPublisher(KafkaTemplate<String, Object> kafkaTemplate) {
-        this.kafkaTemplate = kafkaTemplate;
-    }
+  public EventPublisher(KafkaTemplate<String, Object> kafkaTemplate) {
+    this.kafkaTemplate = kafkaTemplate;
+  }
 
-    public void publishSchemaChange(DomainEvent<?> event) {
-        kafkaTemplate.send(KafkaConfig.SCHEMA_CHANGES_TOPIC, event);
-    }
+  public void publishSchemaChange(DomainEvent<?> event) {
+    kafkaTemplate.send(KafkaConfig.SCHEMA_CHANGES_TOPIC, event);
+  }
 
-    public void publishDataValidation(DomainEvent<?> event) {
-        kafkaTemplate.send(KafkaConfig.DATA_VALIDATION_TOPIC, event);
-    }
+  public void publishDataValidation(DomainEvent<?> event) {
+    kafkaTemplate.send(KafkaConfig.DATA_VALIDATION_TOPIC, event);
+  }
 
-    public void publishAuditEvent(DomainEvent<?> event) {
-        kafkaTemplate.send(KafkaConfig.AUDIT_EVENTS_TOPIC, event);
-    }
+  public void publishAuditEvent(DomainEvent<?> event) {
+    kafkaTemplate.send(KafkaConfig.AUDIT_EVENTS_TOPIC, event);
+  }
 }

@@ -21,8 +21,11 @@ public class QueryController {
   private final DynamicQueryService dynamicQueryService;
 
   @PostMapping("/{entity}")
-  @Operation(summary = "Query Dynamic Records", description = "Queries records for an entity using filters, pagination, and sorting.")
-  public ApiResponse<PaginatedResponse<FormRecordDto>> query(@PathVariable String entity, @RequestBody @Valid DynamicQueryRequest request) {
+  @Operation(
+      summary = "Query Dynamic Records",
+      description = "Queries records for an entity using filters, pagination, and sorting.")
+  public ApiResponse<PaginatedResponse<FormRecordDto>> query(
+      @PathVariable String entity, @RequestBody @Valid DynamicQueryRequest request) {
     PaginatedResponse<FormRecordDto> result = dynamicQueryService.query(entity, request);
     return ApiResponse.success(result, "Query successful");
   }

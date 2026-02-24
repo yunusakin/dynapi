@@ -150,6 +150,13 @@ curl -s "$BASE_URL/admin/schema/entities/tasks/versions" \
   -H "Authorization: Bearer $ADMIN_TOKEN"
 ```
 
+Rollback to a previous schema snapshot (optional maintenance action):
+
+```bash
+curl -s -X POST "$BASE_URL/admin/schema/entities/tasks/rollback/1" \
+  -H "Authorization: Bearer $ADMIN_TOKEN"
+```
+
 ### Step D: Submit a form (public)
 
 ```bash
@@ -192,6 +199,7 @@ Supported filter operators include:
 - `GET/POST/PUT/DELETE /api/admin/schema/field-groups*` manage groups
 - `POST /api/admin/schema/field-groups/{groupId}/publish` publish immutable schema snapshot
 - `GET /api/admin/schema/entities/{entity}/versions` list schema versions
+- `POST /api/admin/schema/entities/{entity}/rollback/{version}` rollback to a previous schema snapshot
 - `POST /api/admin/schema/entities/{entity}/deprecate` deprecate latest published schema
 
 ## 7. Configuration

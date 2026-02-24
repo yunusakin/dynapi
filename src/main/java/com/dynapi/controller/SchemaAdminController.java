@@ -7,11 +7,9 @@ import com.dynapi.dto.ApiResponse;
 import com.dynapi.repository.FieldDefinitionRepository;
 import com.dynapi.repository.FieldGroupRepository;
 import com.dynapi.service.SchemaLifecycleService;
-
 import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
-
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -37,11 +35,17 @@ public class SchemaAdminController {
   }
 
   @PutMapping("/field-definitions/{id}")
-  public ApiResponse<FieldDefinition> updateFieldDefinition(@PathVariable String id, @RequestBody FieldDefinition def) {
-    FieldDefinition current = findFieldDefinitionByName(id).orElseThrow(() -> new IllegalArgumentException("Field definition not found: " + id));
+  public ApiResponse<FieldDefinition> updateFieldDefinition(
+      @PathVariable String id, @RequestBody FieldDefinition def) {
+    FieldDefinition current =
+        findFieldDefinitionByName(id)
+            .orElseThrow(() -> new IllegalArgumentException("Field definition not found: " + id));
     fieldDefinitionRepository.deleteByFieldName(id);
     def.setFieldName(id);
-    def.setVersion(def.getVersion() == null ? ((current.getVersion() == null ? 0 : current.getVersion()) + 1) : def.getVersion());
+    def.setVersion(
+        def.getVersion() == null
+            ? ((current.getVersion() == null ? 0 : current.getVersion()) + 1)
+            : def.getVersion());
     return ApiResponse.success(fieldDefinitionRepository.save(def), "Updated");
   }
 
@@ -66,11 +70,17 @@ public class SchemaAdminController {
   }
 
   @PutMapping("/field-groups/{id}")
-  public ApiResponse<FieldGroup> updateFieldGroup(@PathVariable String id, @RequestBody FieldGroup group) {
-    FieldGroup current = findFieldGroupByName(id).orElseThrow(() -> new IllegalArgumentException("Field group not found: " + id));
+  public ApiResponse<FieldGroup> updateFieldGroup(
+      @PathVariable String id, @RequestBody FieldGroup group) {
+    FieldGroup current =
+        findFieldGroupByName(id)
+            .orElseThrow(() -> new IllegalArgumentException("Field group not found: " + id));
     fieldGroupRepository.deleteByName(id);
     group.setName(id);
-    group.setVersion(group.getVersion() == null ? ((current.getVersion() == null ? 0 : current.getVersion()) + 1) : group.getVersion());
+    group.setVersion(
+        group.getVersion() == null
+            ? ((current.getVersion() == null ? 0 : current.getVersion()) + 1)
+            : group.getVersion());
     return ApiResponse.success(fieldGroupRepository.save(group), "Updated");
   }
 
@@ -100,17 +110,27 @@ public class SchemaAdminController {
     return ApiResponse.success(deprecated, "Deprecated");
   }
 
+  @PostMapping("/entities/{entity}/rollback/{version}")
+  public ApiResponse<SchemaVersion> rollbackEntity(
+      @PathVariable String entity, @PathVariable Integer version) {
+    SchemaVersion rolledBack = schemaLifecycleService.rollback(entity, version);
+    return ApiResponse.success(rolledBack, "Rolled back");
+  }
+
   @GetMapping("/entities/{entity}/versions")
   public ApiResponse<List<SchemaVersion>> listEntityVersions(@PathVariable String entity) {
     return ApiResponse.success(schemaLifecycleService.listVersions(entity), "Fetched");
   }
 
   private Optional<FieldDefinition> findFieldDefinitionByName(String fieldName) {
-    Optional<FieldDefinition> byRepository = fieldDefinitionRepository.findTopByFieldNameOrderByVersionDesc(fieldName);
+    Optional<FieldDefinition> byRepository =
+        fieldDefinitionRepository.findTopByFieldNameOrderByVersionDesc(fieldName);
     if (byRepository != null && byRepository.isPresent()) {
       return byRepository;
     }
-    return fieldDefinitionRepository.findAll().stream().filter(definition -> fieldName.equals(definition.getFieldName())).max(Comparator.comparingInt(this::fieldVersion));
+    return fieldDefinitionRepository.findAll().stream()
+        .filter(definition -> fieldName.equals(definition.getFieldName()))
+        .max(Comparator.comparingInt(this::fieldVersion));
   }
 
   private Optional<FieldGroup> findFieldGroupByName(String name) {
@@ -118,7 +138,9 @@ public class SchemaAdminController {
     if (byRepository != null && byRepository.isPresent()) {
       return byRepository;
     }
-    return fieldGroupRepository.findAll().stream().filter(group -> name.equals(group.getName())).max(Comparator.comparingInt(this::groupVersion));
+    return fieldGroupRepository.findAll().stream()
+        .filter(group -> name.equals(group.getName()))
+        .max(Comparator.comparingInt(this::groupVersion));
   }
 
   private int fieldVersion(FieldDefinition definition) {
