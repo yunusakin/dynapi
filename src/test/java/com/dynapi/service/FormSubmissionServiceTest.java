@@ -1,5 +1,11 @@
 package com.dynapi.service;
 
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+
 import com.dynapi.domain.model.FieldDefinition;
 import com.dynapi.domain.model.FieldGroup;
 import com.dynapi.domain.model.FieldType;
@@ -7,6 +13,11 @@ import com.dynapi.domain.model.SchemaLifecycleStatus;
 import com.dynapi.domain.model.SchemaVersion;
 import com.dynapi.dto.FormSubmissionRequest;
 import com.dynapi.repository.FieldGroupRepository;
+import java.time.LocalDateTime;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -15,132 +26,108 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.context.MessageSource;
 import org.springframework.data.mongodb.core.MongoTemplate;
 
-import java.time.LocalDateTime;
-import java.util.List;
-import java.util.Locale;
-import java.util.Map;
-import java.util.Optional;
-
-import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
-
 @ExtendWith(MockitoExtension.class)
 class FormSubmissionServiceTest {
 
-    @Mock
-    private com.dynapi.audit.AuditPublisher auditPublisher;
-    @Mock
-    private FieldGroupRepository fieldGroupRepository;
-    @Mock
-    private MongoTemplate mongoTemplate;
-    @Mock
-    private MessageSource messageSource;
-    @Mock
-    private com.dynapi.domain.validation.DynamicValidator dynamicValidator;
-    @Mock
-    private SchemaLifecycleService schemaLifecycleService;
+  @Mock private com.dynapi.audit.AuditPublisher auditPublisher;
+  @Mock private FieldGroupRepository fieldGroupRepository;
+  @Mock private MongoTemplate mongoTemplate;
+  @Mock private MessageSource messageSource;
+  @Mock private com.dynapi.domain.validation.DynamicValidator dynamicValidator;
+  @Mock private SchemaLifecycleService schemaLifecycleService;
 
-    private FormSubmissionService formSubmissionService;
+  private FormSubmissionService formSubmissionService;
 
-    @BeforeEach
-    void setUp() {
-        formSubmissionService = new FormSubmissionService(
-                auditPublisher,
-                fieldGroupRepository,
-                mongoTemplate,
-                messageSource,
-                dynamicValidator,
-                schemaLifecycleService
-        );
-    }
+  @BeforeEach
+  void setUp() {
+    formSubmissionService =
+        new FormSubmissionService(
+            auditPublisher,
+            fieldGroupRepository,
+            mongoTemplate,
+            messageSource,
+            dynamicValidator,
+            schemaLifecycleService);
+  }
 
-    @Test
-    void submitForm_throwsWhenNoPublishedSchemaExists() {
-        FieldGroup group = new FieldGroup();
-        group.setName("task-form");
-        group.setEntity("tasks");
+  @Test
+  void submitForm_throwsWhenNoPublishedSchemaExists() {
+    FieldGroup group = new FieldGroup();
+    group.setName("task-form");
+    group.setEntity("tasks");
 
-        FormSubmissionRequest request = new FormSubmissionRequest();
-        request.setGroup("task-form");
-        request.setData(Map.of("title", "Ship v1"));
+    FormSubmissionRequest request =
+        new FormSubmissionRequest("task-form", Map.of("title", "Ship v1"));
 
-        when(fieldGroupRepository.findById("task-form")).thenReturn(Optional.of(group));
-        when(schemaLifecycleService.latestPublished("tasks"))
-                .thenThrow(new IllegalArgumentException("No published schema found for entity: tasks"));
+    when(fieldGroupRepository.findById("task-form")).thenReturn(Optional.of(group));
+    when(schemaLifecycleService.latestPublished("tasks"))
+        .thenThrow(new IllegalArgumentException("No published schema found for entity: tasks"));
 
-        assertThrows(
-                IllegalArgumentException.class,
-                () -> formSubmissionService.submitForm(request, Locale.US)
-        );
-    }
+    assertThrows(
+        IllegalArgumentException.class, () -> formSubmissionService.submitForm(request, Locale.US));
+  }
 
-    @Test
-    void submitForm_validatesAgainstPublishedSchemaAndPersists() {
-        FieldGroup group = new FieldGroup();
-        group.setName("task-form");
-        group.setEntity("tasks");
+  @Test
+  void submitForm_validatesAgainstPublishedSchemaAndPersists() {
+    FieldGroup group = new FieldGroup();
+    group.setName("task-form");
+    group.setEntity("tasks");
 
-        FieldDefinition title = new FieldDefinition();
-        title.setFieldName("title");
-        title.setType(FieldType.STRING);
-        title.setRequired(true);
+    FieldDefinition title = new FieldDefinition();
+    title.setFieldName("title");
+    title.setType(FieldType.STRING);
+    title.setRequired(true);
 
-        SchemaVersion published = new SchemaVersion();
-        published.setEntityName("tasks");
-        published.setVersion(1);
-        published.setStatus(SchemaLifecycleStatus.PUBLISHED);
-        published.setCreatedAt(LocalDateTime.now());
-        published.setFields(List.of(title));
+    SchemaVersion published = new SchemaVersion();
+    published.setEntityName("tasks");
+    published.setVersion(1);
+    published.setStatus(SchemaLifecycleStatus.PUBLISHED);
+    published.setCreatedAt(LocalDateTime.now());
+    published.setFields(List.of(title));
 
-        Map<String, Object> payload = Map.of("title", "Ship v1");
-        FormSubmissionRequest request = new FormSubmissionRequest();
-        request.setGroup("task-form");
-        request.setData(payload);
+    Map<String, Object> payload = Map.of("title", "Ship v1");
+    FormSubmissionRequest request = new FormSubmissionRequest("task-form", payload);
 
-        when(fieldGroupRepository.findById("task-form")).thenReturn(Optional.of(group));
-        when(schemaLifecycleService.latestPublished("tasks")).thenReturn(published);
+    when(fieldGroupRepository.findById("task-form")).thenReturn(Optional.of(group));
+    when(schemaLifecycleService.latestPublished("tasks")).thenReturn(published);
 
-        formSubmissionService.submitForm(request, Locale.US);
+    formSubmissionService.submitForm(request, Locale.US);
 
-        verify(dynamicValidator).validate(eq(payload), eq(List.of(title)), any(Locale.class));
-        verify(mongoTemplate).save(payload, "tasks");
-        verify(auditPublisher).publish("FORM_SUBMIT", "tasks", payload);
-    }
+    verify(dynamicValidator).validate(eq(payload), eq(List.of(title)), any(Locale.class));
+    verify(mongoTemplate).save(payload, "tasks");
+    verify(auditPublisher).publish("FORM_SUBMIT", "tasks", payload);
+  }
 
-    @Test
-    void submitForm_resolvesGroupByNameWhenIdLookupMisses() {
-        FieldGroup group = new FieldGroup();
-        group.setName("task-form");
-        group.setEntity("tasks");
+  @Test
+  void submitForm_resolvesGroupByNameWhenIdLookupMisses() {
+    FieldGroup group = new FieldGroup();
+    group.setName("task-form");
+    group.setEntity("tasks");
 
-        FieldDefinition title = new FieldDefinition();
-        title.setFieldName("title");
-        title.setType(FieldType.STRING);
-        title.setRequired(true);
+    FieldDefinition title = new FieldDefinition();
+    title.setFieldName("title");
+    title.setType(FieldType.STRING);
+    title.setRequired(true);
 
-        SchemaVersion published = new SchemaVersion();
-        published.setEntityName("tasks");
-        published.setVersion(1);
-        published.setStatus(SchemaLifecycleStatus.PUBLISHED);
-        published.setCreatedAt(LocalDateTime.now());
-        published.setFields(List.of(title));
+    SchemaVersion published = new SchemaVersion();
+    published.setEntityName("tasks");
+    published.setVersion(1);
+    published.setStatus(SchemaLifecycleStatus.PUBLISHED);
+    published.setCreatedAt(LocalDateTime.now());
+    published.setFields(List.of(title));
 
-        Map<String, Object> payload = Map.of("title", "Ship v1");
-        FormSubmissionRequest request = new FormSubmissionRequest();
-        request.setGroup("task-form");
-        request.setData(payload);
+    Map<String, Object> payload = Map.of("title", "Ship v1");
+    FormSubmissionRequest request = new FormSubmissionRequest("task-form", payload);
 
-        when(fieldGroupRepository.findById("task-form")).thenReturn(Optional.empty());
-        when(fieldGroupRepository.findTopByNameOrderByVersionDesc("task-form")).thenReturn(Optional.of(group));
-        when(schemaLifecycleService.latestPublished("tasks")).thenReturn(published);
+    when(fieldGroupRepository.findById("task-form")).thenReturn(Optional.empty());
+    when(fieldGroupRepository.findTopByNameOrderByVersionDesc("task-form"))
+        .thenReturn(Optional.of(group));
+    when(schemaLifecycleService.latestPublished("tasks")).thenReturn(published);
 
-        formSubmissionService.submitForm(request, Locale.US);
+    formSubmissionService.submitForm(request, Locale.US);
 
-        verify(dynamicValidator).validate(eq(payload), eq(List.of(title)), any(Locale.class));
-        verify(mongoTemplate).save(payload, "tasks");
-        verify(auditPublisher).publish("FORM_SUBMIT", "tasks", payload);
-    }
+    verify(dynamicValidator).validate(eq(payload), eq(List.of(title)), any(Locale.class));
+    verify(mongoTemplate).save(payload, "tasks");
+    verify(auditPublisher).publish("FORM_SUBMIT", "tasks", payload);
+  }
 }

@@ -1,51 +1,33 @@
-
 package com.dynapi.dto;
+
+import io.swagger.v3.oas.annotations.media.ArraySchema;
+import io.swagger.v3.oas.annotations.media.Schema;
+import jakarta.validation.constraints.Pattern;
+import jakarta.validation.constraints.Positive;
+import jakarta.validation.constraints.PositiveOrZero;
 import java.util.List;
 
-public class DynamicQueryRequest {
-    private List<FilterRule> filters;
-    private Integer page;
-    private Integer size;
-    private String sortBy;
-    private String sortDirection;
-
-    public List<FilterRule> getFilters() {
-        return filters;
-    }
-
-    public void setFilters(List<FilterRule> filters) {
-        this.filters = filters;
-    }
-
-    public Integer getPage() {
-        return page;
-    }
-
-    public void setPage(Integer page) {
-        this.page = page;
-    }
-
-    public Integer getSize() {
-        return size;
-    }
-
-    public void setSize(Integer size) {
-        this.size = size;
-    }
-
-    public String getSortBy() {
-        return sortBy;
-    }
-
-    public void setSortBy(String sortBy) {
-        this.sortBy = sortBy;
-    }
-
-    public String getSortDirection() {
-        return sortDirection;
-    }
-
-    public void setSortDirection(String sortDirection) {
-        this.sortDirection = sortDirection;
-    }
-}
+@Schema(
+    name = "DynamicQueryRequest",
+    description =
+        "Query request for dynamic entity records with guardrailed filtering, pagination, and"
+            + " sorting.")
+public record DynamicQueryRequest(
+    @ArraySchema(
+            arraySchema = @Schema(description = "Filter tree. Empty or null means no filters."),
+            schema = @Schema(implementation = FilterRule.class))
+        List<FilterRule> filters,
+    @Schema(description = "Zero-based page index.", example = "0", defaultValue = "0")
+        @PositiveOrZero(message = "page must be greater than or equal to 0")
+        Integer page,
+    @Schema(description = "Page size.", example = "10", defaultValue = "10")
+        @Positive(message = "size must be greater than 0")
+        Integer size,
+    @Schema(description = "Sortable field path from published schema.", example = "profile.age")
+        String sortBy,
+    @Schema(
+            description = "Sort direction.",
+            example = "ASC",
+            allowableValues = {"ASC", "DESC"})
+        @Pattern(regexp = "(?i)ASC|DESC", message = "sortDirection must be ASC or DESC")
+        String sortDirection) {}

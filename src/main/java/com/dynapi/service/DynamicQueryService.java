@@ -8,6 +8,12 @@ import com.dynapi.dto.DynamicQueryRequest;
 import com.dynapi.dto.FilterRule;
 import com.dynapi.dto.FormRecordDto;
 import com.dynapi.dto.PaginatedResponse;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.atomic.AtomicInteger;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
@@ -16,349 +22,386 @@ import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.stereotype.Service;
 
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.concurrent.atomic.AtomicInteger;
-import java.util.stream.Collectors;
-
 @Service
 @RequiredArgsConstructor
 public class DynamicQueryService {
-    private static final int DEFAULT_PAGE = 0;
-    private static final int DEFAULT_SIZE = 10;
+  private static final int DEFAULT_PAGE = 0;
+  private static final int DEFAULT_SIZE = 10;
 
-    private static final Set<String> COMBINATOR_OPERATORS = Set.of("and", "or", "not");
-    private static final Set<String> NUMBER_OPERATORS = Set.of("eq", "ne", "gt", "lt", "gte", "lte", "in");
-    private static final Set<String> DATE_OPERATORS = Set.of("eq", "ne", "gt", "lt", "gte", "lte", "in");
-    private static final Set<String> STRING_OPERATORS = Set.of("eq", "ne", "in", "regex");
-    private static final Set<String> BOOLEAN_OPERATORS = Set.of("eq", "ne", "in");
-    private static final Set<String> OBJECT_ARRAY_OPERATORS = Set.of("eq", "ne");
+  private static final Set<String> COMBINATOR_OPERATORS = Set.of("and", "or", "not");
+  private static final Set<String> NUMBER_OPERATORS =
+      Set.of("eq", "ne", "gt", "lt", "gte", "lte", "in");
+  private static final Set<String> DATE_OPERATORS =
+      Set.of("eq", "ne", "gt", "lt", "gte", "lte", "in");
+  private static final Set<String> STRING_OPERATORS = Set.of("eq", "ne", "in", "regex");
+  private static final Set<String> BOOLEAN_OPERATORS = Set.of("eq", "ne", "in");
+  private static final Set<String> OBJECT_ARRAY_OPERATORS = Set.of("eq", "ne");
 
-    private final MongoTemplate mongoTemplate;
-    private final SchemaLifecycleService schemaLifecycleService;
-    private final QueryGuardrailProperties guardrailProperties;
+  private final MongoTemplate mongoTemplate;
+  private final SchemaLifecycleService schemaLifecycleService;
+  private final QueryGuardrailProperties guardrailProperties;
 
-    public PaginatedResponse<FormRecordDto> query(String entity, DynamicQueryRequest request) {
-        DynamicQueryRequest safeRequest = request == null ? new DynamicQueryRequest() : request;
-        int page = resolvePage(safeRequest.getPage());
-        int size = resolveSize(safeRequest.getSize());
-        Map<String, FieldType> allowedFieldTypes = loadFieldTypesByEntity(entity);
+  public PaginatedResponse<FormRecordDto> query(String entity, DynamicQueryRequest request) {
+    DynamicQueryRequest safeRequest =
+        request == null ? new DynamicQueryRequest(null, null, null, null, null) : request;
+    int page = resolvePage(safeRequest.page());
+    int size = resolveSize(safeRequest.size());
+    Map<String, FieldType> allowedFieldTypes = loadFieldTypesByEntity(entity);
+    List<FilterNode> filterNodes = toFilterNodes(safeRequest.filters());
 
-        validateSort(safeRequest.getSortBy(), safeRequest.getSortDirection(), allowedFieldTypes);
-        validateFilters(safeRequest.getFilters(), allowedFieldTypes);
+    validateSort(safeRequest.sortBy(), safeRequest.sortDirection(), allowedFieldTypes);
+    validateFilters(filterNodes, allowedFieldTypes);
 
-        Query query = new Query();
-        if (safeRequest.getFilters() != null && !safeRequest.getFilters().isEmpty()) {
-            query.addCriteria(buildCriteria(safeRequest.getFilters()));
-        }
-
-        if (safeRequest.getSortBy() != null && !safeRequest.getSortBy().isBlank()) {
-            Sort.Direction dir = resolveSortDirection(safeRequest.getSortDirection());
-            query.with(Sort.by(dir, safeRequest.getSortBy().trim()));
-        }
-
-        query.with(PageRequest.of(page, size));
-
-        List<Map> results = mongoTemplate.find(query, Map.class, entity);
-        List<FormRecordDto> content = results.stream().map(result -> {
-            FormRecordDto dto = new FormRecordDto();
-            dto.setId(result.get("_id") != null ? result.get("_id").toString() : null);
-            @SuppressWarnings("unchecked")
-            Map<String, Object> data = new HashMap<>((Map<String, Object>) result);
-            data.remove("_id");
-            data.remove("_class");
-            dto.setData(data);
-            return dto;
-        }).collect(Collectors.toList());
-
-        long total = mongoTemplate.count(query.skip(-1).limit(-1), entity);
-
-        PaginatedResponse<FormRecordDto> response = new PaginatedResponse<>();
-        response.setPage(page);
-        response.setSize(size);
-        response.setTotalElements(total);
-        response.setContent(content);
-        response.setSortBy(safeRequest.getSortBy());
-        response.setSortDirection(safeRequest.getSortDirection());
-        return response;
+    Query query = new Query();
+    if (!filterNodes.isEmpty()) {
+      query.addCriteria(buildCriteria(filterNodes));
     }
 
-    private int resolvePage(Integer page) {
-        if (page == null) {
-            return DEFAULT_PAGE;
-        }
-        if (page < 0) {
-            throw new IllegalArgumentException("Page must be >= 0");
-        }
-        return page;
+    if (safeRequest.sortBy() != null && !safeRequest.sortBy().isBlank()) {
+      Sort.Direction dir = resolveSortDirection(safeRequest.sortDirection());
+      query.with(Sort.by(dir, safeRequest.sortBy().trim()));
     }
 
-    private int resolveSize(Integer size) {
-        if (size == null) {
-            return DEFAULT_SIZE;
-        }
-        if (size <= 0) {
-            throw new IllegalArgumentException("Size must be > 0");
-        }
-        if (size > guardrailProperties.getMaxPageSize()) {
-            throw new IllegalArgumentException("Size exceeds max page size: " + guardrailProperties.getMaxPageSize());
-        }
-        return size;
+    query.with(PageRequest.of(page, size));
+
+    List<Map> results = mongoTemplate.find(query, Map.class, entity);
+    List<FormRecordDto> content =
+        results.stream()
+            .map(
+                result -> {
+                  String id = result.get("_id") != null ? result.get("_id").toString() : null;
+                  @SuppressWarnings("unchecked")
+                  Map<String, Object> data = new HashMap<>((Map<String, Object>) result);
+                  data.remove("_id");
+                  data.remove("_class");
+                  return new FormRecordDto(id, data);
+                })
+            .toList();
+
+    long total = mongoTemplate.count(query.skip(-1).limit(-1), entity);
+
+    return new PaginatedResponse<>(
+        page, size, total, content, safeRequest.sortBy(), safeRequest.sortDirection());
+  }
+
+  private int resolvePage(Integer page) {
+    if (page == null) {
+      return DEFAULT_PAGE;
+    }
+    if (page < 0) {
+      throw new IllegalArgumentException("Page must be >= 0");
+    }
+    return page;
+  }
+
+  private int resolveSize(Integer size) {
+    if (size == null) {
+      return DEFAULT_SIZE;
+    }
+    if (size <= 0) {
+      throw new IllegalArgumentException("Size must be > 0");
+    }
+    if (size > guardrailProperties.getMaxPageSize()) {
+      throw new IllegalArgumentException(
+          "Size exceeds max page size: " + guardrailProperties.getMaxPageSize());
+    }
+    return size;
+  }
+
+  private Sort.Direction resolveSortDirection(String sortDirection) {
+    if (sortDirection == null || sortDirection.isBlank()) {
+      return Sort.Direction.ASC;
     }
 
-    private Sort.Direction resolveSortDirection(String sortDirection) {
-        if (sortDirection == null || sortDirection.isBlank()) {
-            return Sort.Direction.ASC;
-        }
+    if ("DESC".equalsIgnoreCase(sortDirection)) {
+      return Sort.Direction.DESC;
+    }
+    if ("ASC".equalsIgnoreCase(sortDirection)) {
+      return Sort.Direction.ASC;
+    }
+    throw new IllegalArgumentException("Unsupported sort direction: " + sortDirection);
+  }
 
-        if ("DESC".equalsIgnoreCase(sortDirection)) {
-            return Sort.Direction.DESC;
-        }
-        if ("ASC".equalsIgnoreCase(sortDirection)) {
-            return Sort.Direction.ASC;
-        }
-        throw new IllegalArgumentException("Unsupported sort direction: " + sortDirection);
+  private Map<String, FieldType> loadFieldTypesByEntity(String entity) {
+    SchemaVersion publishedSchema = schemaLifecycleService.latestPublished(entity);
+    List<FieldDefinition> definitions = publishedSchema.getFields();
+
+    if (definitions == null || definitions.isEmpty()) {
+      throw new IllegalArgumentException("Published schema has no fields for entity: " + entity);
     }
 
-    private Map<String, FieldType> loadFieldTypesByEntity(String entity) {
-        SchemaVersion publishedSchema = schemaLifecycleService.latestPublished(entity);
-        List<FieldDefinition> definitions = publishedSchema.getFields();
+    Map<String, FieldType> fieldTypeByPath = new HashMap<>();
+    for (FieldDefinition definition : definitions) {
+      registerFieldPaths(definition, "", fieldTypeByPath);
+    }
+    return fieldTypeByPath;
+  }
 
-        if (definitions == null || definitions.isEmpty()) {
-            throw new IllegalArgumentException("Published schema has no fields for entity: " + entity);
-        }
+  private void registerFieldPaths(
+      FieldDefinition definition, String parentPath, Map<String, FieldType> fieldTypeByPath) {
+    String path =
+        parentPath.isEmpty()
+            ? definition.getFieldName()
+            : parentPath + "." + definition.getFieldName();
 
-        Map<String, FieldType> fieldTypeByPath = new HashMap<>();
-        for (FieldDefinition definition : definitions) {
-            registerFieldPaths(definition, "", fieldTypeByPath);
-        }
-        return fieldTypeByPath;
+    fieldTypeByPath.put(path, definition.getType());
+    if ((definition.getType() == FieldType.OBJECT || definition.getType() == FieldType.ARRAY)
+        && definition.getSubFields() != null
+        && !definition.getSubFields().isEmpty()) {
+      for (FieldDefinition subField : definition.getSubFields()) {
+        registerFieldPaths(subField, path, fieldTypeByPath);
+      }
+    }
+  }
+
+  private void validateSort(
+      String sortBy, String sortDirection, Map<String, FieldType> fieldTypes) {
+    if (sortBy == null || sortBy.isBlank()) {
+      if (sortDirection != null && !sortDirection.isBlank()) {
+        throw new IllegalArgumentException("sortDirection requires sortBy");
+      }
+      return;
     }
 
-    private void registerFieldPaths(FieldDefinition definition, String parentPath, Map<String, FieldType> fieldTypeByPath) {
-        String path = parentPath.isEmpty()
-                ? definition.getFieldName()
-                : parentPath + "." + definition.getFieldName();
-
-        fieldTypeByPath.put(path, definition.getType());
-        if ((definition.getType() == FieldType.OBJECT || definition.getType() == FieldType.ARRAY)
-                && definition.getSubFields() != null && !definition.getSubFields().isEmpty()) {
-            for (FieldDefinition subField : definition.getSubFields()) {
-                registerFieldPaths(subField, path, fieldTypeByPath);
-            }
-        }
+    String normalizedSortBy = sortBy.trim();
+    if (!fieldTypes.containsKey(normalizedSortBy)) {
+      throw new IllegalArgumentException("Sorting by field is not allowed: " + normalizedSortBy);
     }
 
-    private void validateSort(String sortBy, String sortDirection, Map<String, FieldType> fieldTypes) {
-        if (sortBy == null || sortBy.isBlank()) {
-            if (sortDirection != null && !sortDirection.isBlank()) {
-                throw new IllegalArgumentException("sortDirection requires sortBy");
-            }
-            return;
-        }
+    if (sortDirection != null && !sortDirection.isBlank()) {
+      resolveSortDirection(sortDirection);
+    }
+  }
 
-        String normalizedSortBy = sortBy.trim();
-        if (!fieldTypes.containsKey(normalizedSortBy)) {
-            throw new IllegalArgumentException("Sorting by field is not allowed: " + normalizedSortBy);
-        }
+  private void validateFilters(List<FilterNode> filters, Map<String, FieldType> fieldTypes) {
+    AtomicInteger ruleCount = new AtomicInteger();
+    for (FilterNode filter : filters) {
+      validateNode(filter, 1, ruleCount, fieldTypes);
+    }
+  }
 
-        if (sortDirection != null && !sortDirection.isBlank()) {
-            resolveSortDirection(sortDirection);
-        }
+  private void validateNode(
+      FilterNode rule, int depth, AtomicInteger ruleCount, Map<String, FieldType> fieldTypes) {
+    if (depth > guardrailProperties.getMaxFilterDepth()) {
+      throw new IllegalArgumentException(
+          "Filter depth exceeds max: " + guardrailProperties.getMaxFilterDepth());
+    }
+    if (ruleCount.incrementAndGet() > guardrailProperties.getMaxRuleCount()) {
+      throw new IllegalArgumentException(
+          "Filter rule count exceeds max: " + guardrailProperties.getMaxRuleCount());
     }
 
-    private void validateFilters(List<FilterRule> filters, Map<String, FieldType> fieldTypes) {
-        if (filters == null || filters.isEmpty()) {
-            return;
+    switch (rule) {
+      case FilterGroupNode groupNode -> {
+        if (groupNode.rules().isEmpty()) {
+          throw new IllegalArgumentException(
+              "Combinator operator requires nested rules: " + groupNode.operator());
+        }
+        if ("not".equals(groupNode.operator()) && groupNode.rules().size() != 1) {
+          throw new IllegalArgumentException("NOT operator requires exactly one nested rule");
+        }
+        for (FilterNode nestedRule : groupNode.rules()) {
+          validateNode(nestedRule, depth + 1, ruleCount, fieldTypes);
+        }
+      }
+      case FilterLeafNode leafNode -> {
+        if (leafNode.field() == null) {
+          throw new IllegalArgumentException("Filter field is required");
         }
 
-        AtomicInteger ruleCount = new AtomicInteger();
-        for (FilterRule filter : filters) {
-            validateRule(filter, 1, ruleCount, fieldTypes);
-        }
-    }
-
-    private void validateRule(
-            FilterRule rule,
-            int depth,
-            AtomicInteger ruleCount,
-            Map<String, FieldType> fieldTypes
-    ) {
-        if (rule == null) {
-            throw new IllegalArgumentException("Filter rule cannot be null");
-        }
-        if (depth > guardrailProperties.getMaxFilterDepth()) {
-            throw new IllegalArgumentException("Filter depth exceeds max: " + guardrailProperties.getMaxFilterDepth());
-        }
-        if (ruleCount.incrementAndGet() > guardrailProperties.getMaxRuleCount()) {
-            throw new IllegalArgumentException("Filter rule count exceeds max: " + guardrailProperties.getMaxRuleCount());
-        }
-
-        String operator = normalizeOperator(rule.getOperator());
-        if (COMBINATOR_OPERATORS.contains(operator)) {
-            List<FilterRule> nestedRules = rule.getRules();
-            if (nestedRules == null || nestedRules.isEmpty()) {
-                throw new IllegalArgumentException("Combinator operator requires nested rules: " + operator);
-            }
-            if ("not".equals(operator) && nestedRules.size() != 1) {
-                throw new IllegalArgumentException("NOT operator requires exactly one nested rule");
-            }
-            for (FilterRule nestedRule : nestedRules) {
-                validateRule(nestedRule, depth + 1, ruleCount, fieldTypes);
-            }
-            return;
-        }
-
-        if (rule.getRules() != null && !rule.getRules().isEmpty()) {
-            throw new IllegalArgumentException("Leaf filter operators cannot include nested rules");
-        }
-
-        String field = normalizeField(rule.getField());
-        if (field == null) {
-            throw new IllegalArgumentException("Filter field is required");
-        }
-
-        FieldType fieldType = fieldTypes.get(field);
+        FieldType fieldType = fieldTypes.get(leafNode.field());
         if (fieldType == null) {
-            throw new IllegalArgumentException("Filtering by field is not allowed: " + field);
+          throw new IllegalArgumentException(
+              "Filtering by field is not allowed: " + leafNode.field());
         }
 
-        validateOperatorForType(field, operator, fieldType);
-        validateOperatorValue(field, operator, fieldType, rule.getValue());
+        validateOperatorForType(leafNode.field(), leafNode.operator(), fieldType);
+        validateOperatorValue(leafNode.field(), leafNode.operator(), fieldType, leafNode.value());
+      }
+    }
+  }
+
+  private void validateOperatorForType(String field, String operator, FieldType fieldType) {
+    Set<String> allowedOperators = allowedOperatorsFor(fieldType);
+    if (!allowedOperators.contains(operator)) {
+      throw new IllegalArgumentException(
+          "Operator '"
+              + operator
+              + "' is not allowed for field '"
+              + field
+              + "' of type "
+              + fieldType);
+    }
+  }
+
+  private Set<String> allowedOperatorsFor(FieldType fieldType) {
+    return switch (fieldType) {
+      case STRING -> STRING_OPERATORS;
+      case NUMBER -> NUMBER_OPERATORS;
+      case BOOLEAN -> BOOLEAN_OPERATORS;
+      case DATE -> DATE_OPERATORS;
+      case OBJECT, ARRAY -> OBJECT_ARRAY_OPERATORS;
+    };
+  }
+
+  private void validateOperatorValue(
+      String field, String operator, FieldType fieldType, Object value) {
+    if ("in".equals(operator)) {
+      if (!(value instanceof Collection<?> collection)) {
+        throw new IllegalArgumentException("IN operator requires a list for field: " + field);
+      }
+      validateCollectionValues(field, fieldType, collection);
+      return;
     }
 
-    private void validateOperatorForType(String field, String operator, FieldType fieldType) {
-        Set<String> allowedOperators = allowedOperatorsFor(fieldType);
-        if (!allowedOperators.contains(operator)) {
+    if ("regex".equals(operator)) {
+      if (!(value instanceof String)) {
+        throw new IllegalArgumentException(
+            "Regex operator requires string value for field: " + field);
+      }
+      return;
+    }
+
+    if (fieldType == FieldType.NUMBER
+        && ("gt".equals(operator)
+            || "lt".equals(operator)
+            || "gte".equals(operator)
+            || "lte".equals(operator))) {
+      if (!(value instanceof Number)) {
+        throw new IllegalArgumentException(
+            "Operator '" + operator + "' requires numeric value for field: " + field);
+      }
+    }
+
+    if (fieldType == FieldType.DATE
+        && ("gt".equals(operator)
+            || "lt".equals(operator)
+            || "gte".equals(operator)
+            || "lte".equals(operator))) {
+      if (!(value instanceof String)) {
+        throw new IllegalArgumentException(
+            "Operator '" + operator + "' requires date-string value for field: " + field);
+      }
+    }
+  }
+
+  private void validateCollectionValues(
+      String field, FieldType fieldType, Collection<?> collection) {
+    for (Object item : collection) {
+      switch (fieldType) {
+        case NUMBER -> {
+          if (!(item instanceof Number)) {
             throw new IllegalArgumentException(
-                    "Operator '" + operator + "' is not allowed for field '" + field + "' of type " + fieldType
-            );
+                "IN operator requires numeric list for field: " + field);
+          }
         }
+        case BOOLEAN -> {
+          if (!(item instanceof Boolean)) {
+            throw new IllegalArgumentException(
+                "IN operator requires boolean list for field: " + field);
+          }
+        }
+        case DATE, STRING -> {
+          if (!(item instanceof String)) {
+            throw new IllegalArgumentException(
+                "IN operator requires string list for field: " + field);
+          }
+        }
+        case OBJECT, ARRAY ->
+            throw new IllegalArgumentException("IN operator is not allowed for field: " + field);
+      }
     }
+  }
 
-    private Set<String> allowedOperatorsFor(FieldType fieldType) {
-        return switch (fieldType) {
-            case STRING -> STRING_OPERATORS;
-            case NUMBER -> NUMBER_OPERATORS;
-            case BOOLEAN -> BOOLEAN_OPERATORS;
-            case DATE -> DATE_OPERATORS;
-            case OBJECT, ARRAY -> OBJECT_ARRAY_OPERATORS;
+  private String normalizeOperator(String operator) {
+    if (operator == null || operator.isBlank()) {
+      return "eq";
+    }
+    return operator.trim().toLowerCase();
+  }
+
+  private String normalizeField(String field) {
+    if (field == null || field.isBlank()) {
+      return null;
+    }
+    return field.trim();
+  }
+
+  private Criteria buildCriteria(List<FilterNode> rules) {
+    if (rules == null || rules.isEmpty()) {
+      return new Criteria();
+    }
+    List<Criteria> criteriaList = rules.stream().map(this::buildCriteria).toList();
+    if (criteriaList.size() == 1) {
+      return criteriaList.get(0);
+    }
+    return new Criteria().andOperator(criteriaList.toArray(new Criteria[0]));
+  }
+
+  private Criteria buildCriteria(FilterNode rule) {
+    return switch (rule) {
+      case FilterGroupNode groupNode -> {
+        List<Criteria> nested = groupNode.rules().stream().map(this::buildCriteria).toList();
+        yield switch (groupNode.operator()) {
+          case "and" -> new Criteria().andOperator(nested.toArray(new Criteria[0]));
+          case "or" -> new Criteria().orOperator(nested.toArray(new Criteria[0]));
+          case "not" -> new Criteria().norOperator(nested.get(0));
+          default ->
+              throw new IllegalArgumentException(
+                  "Unsupported combinator operator: " + groupNode.operator());
         };
+      }
+      case FilterLeafNode leafNode -> {
+        yield switch (leafNode.operator()) {
+          case "eq" -> Criteria.where(leafNode.field()).is(leafNode.value());
+          case "ne" -> Criteria.where(leafNode.field()).ne(leafNode.value());
+          case "gt" -> Criteria.where(leafNode.field()).gt(leafNode.value());
+          case "lt" -> Criteria.where(leafNode.field()).lt(leafNode.value());
+          case "gte" -> Criteria.where(leafNode.field()).gte(leafNode.value());
+          case "lte" -> Criteria.where(leafNode.field()).lte(leafNode.value());
+          case "in" -> Criteria.where(leafNode.field()).in((Collection<?>) leafNode.value());
+          case "regex" -> Criteria.where(leafNode.field()).regex((String) leafNode.value());
+          default -> Criteria.where(leafNode.field()).is(leafNode.value());
+        };
+      }
+    };
+  }
+
+  private List<FilterNode> toFilterNodes(List<FilterRule> filters) {
+    if (filters == null || filters.isEmpty()) {
+      return List.of();
+    }
+    return filters.stream().map(this::toFilterNode).toList();
+  }
+
+  private FilterNode toFilterNode(FilterRule rule) {
+    if (rule == null) {
+      throw new IllegalArgumentException("Filter rule cannot be null");
     }
 
-    private void validateOperatorValue(String field, String operator, FieldType fieldType, Object value) {
-        if ("in".equals(operator)) {
-            if (!(value instanceof Collection<?> collection)) {
-                throw new IllegalArgumentException("IN operator requires a list for field: " + field);
-            }
-            validateCollectionValues(field, fieldType, collection);
-            return;
-        }
-
-        if ("regex".equals(operator)) {
-            if (!(value instanceof String)) {
-                throw new IllegalArgumentException("Regex operator requires string value for field: " + field);
-            }
-            return;
-        }
-
-        if (fieldType == FieldType.NUMBER && ("gt".equals(operator) || "lt".equals(operator) || "gte".equals(operator) || "lte".equals(operator))) {
-            if (!(value instanceof Number)) {
-                throw new IllegalArgumentException("Operator '" + operator + "' requires numeric value for field: " + field);
-            }
-        }
-
-        if (fieldType == FieldType.DATE && ("gt".equals(operator) || "lt".equals(operator) || "gte".equals(operator) || "lte".equals(operator))) {
-            if (!(value instanceof String)) {
-                throw new IllegalArgumentException("Operator '" + operator + "' requires date-string value for field: " + field);
-            }
-        }
+    String operator = normalizeOperator(rule.operator());
+    if (COMBINATOR_OPERATORS.contains(operator)) {
+      List<FilterRule> rawRules = rule.rules();
+      List<FilterNode> nodes =
+          rawRules == null ? List.of() : rawRules.stream().map(this::toFilterNode).toList();
+      return new FilterGroupNode(operator, nodes);
     }
 
-    private void validateCollectionValues(String field, FieldType fieldType, Collection<?> collection) {
-        for (Object item : collection) {
-            switch (fieldType) {
-                case NUMBER -> {
-                    if (!(item instanceof Number)) {
-                        throw new IllegalArgumentException("IN operator requires numeric list for field: " + field);
-                    }
-                }
-                case BOOLEAN -> {
-                    if (!(item instanceof Boolean)) {
-                        throw new IllegalArgumentException("IN operator requires boolean list for field: " + field);
-                    }
-                }
-                case DATE, STRING -> {
-                    if (!(item instanceof String)) {
-                        throw new IllegalArgumentException("IN operator requires string list for field: " + field);
-                    }
-                }
-                case OBJECT, ARRAY -> throw new IllegalArgumentException("IN operator is not allowed for field: " + field);
-            }
-        }
+    if (rule.rules() != null && !rule.rules().isEmpty()) {
+      throw new IllegalArgumentException("Leaf filter operators cannot include nested rules");
     }
 
-    private String normalizeOperator(String operator) {
-        if (operator == null || operator.isBlank()) {
-            return "eq";
-        }
-        return operator.trim().toLowerCase();
-    }
+    return new FilterLeafNode(normalizeField(rule.field()), operator, rule.value());
+  }
 
-    private String normalizeField(String field) {
-        if (field == null || field.isBlank()) {
-            return null;
-        }
-        return field.trim();
-    }
+  private sealed interface FilterNode permits FilterLeafNode, FilterGroupNode {}
 
-    private Criteria buildCriteria(List<FilterRule> rules) {
-        if (rules == null || rules.isEmpty()) {
-            return new Criteria();
-        }
-        List<Criteria> criteriaList = rules.stream().map(this::buildCriteria).collect(Collectors.toList());
-        if (criteriaList.size() == 1) {
-            return criteriaList.get(0);
-        }
-        return new Criteria().andOperator(criteriaList.toArray(new Criteria[0]));
-    }
+  private record FilterLeafNode(String field, String operator, Object value)
+      implements FilterNode {}
 
-    private Criteria buildCriteria(FilterRule rule) {
-        String operator = normalizeOperator(rule.getOperator());
-        if (COMBINATOR_OPERATORS.contains(operator)) {
-            List<Criteria> nested = rule.getRules().stream().map(this::buildCriteria).collect(Collectors.toList());
-            return switch (operator) {
-                case "and" -> new Criteria().andOperator(nested.toArray(new Criteria[0]));
-                case "or" -> new Criteria().orOperator(nested.toArray(new Criteria[0]));
-                case "not" -> new Criteria().norOperator(nested.get(0));
-                default -> new Criteria();
-            };
-        }
-
-        String field = normalizeField(rule.getField());
-        Object value = rule.getValue();
-        switch (operator) {
-            case "eq":
-                return Criteria.where(field).is(value);
-            case "ne":
-                return Criteria.where(field).ne(value);
-            case "gt":
-                return Criteria.where(field).gt(value);
-            case "lt":
-                return Criteria.where(field).lt(value);
-            case "gte":
-                return Criteria.where(field).gte(value);
-            case "lte":
-                return Criteria.where(field).lte(value);
-            case "in":
-                return Criteria.where(field).in((Collection<?>) value);
-            case "regex":
-                return Criteria.where(field).regex((String) value);
-            default:
-                return Criteria.where(field).is(value);
-        }
+  private record FilterGroupNode(String operator, List<FilterNode> rules) implements FilterNode {
+    private FilterGroupNode {
+      rules = rules == null ? List.of() : List.copyOf(rules);
     }
+  }
 }

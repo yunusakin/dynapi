@@ -1,4 +1,19 @@
 spring:
+  threads:
+    virtual:
+      enabled: true
+
+  mvc:
+    apiversion:
+      supported:
+        - "1"
+      default: "1"
+      required: false
+      use:
+        query-parameter: api-version
+    problemdetails:
+      enabled: true
+
   data:
     mongodb:
       host: localhost
