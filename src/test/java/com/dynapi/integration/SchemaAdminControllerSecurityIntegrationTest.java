@@ -4,9 +4,12 @@ import com.dynapi.controller.SchemaAdminController;
 import com.dynapi.DynapiApplication;
 import com.dynapi.domain.model.FieldDefinition;
 import com.dynapi.domain.model.FieldGroup;
+import com.dynapi.domain.model.SchemaLifecycleStatus;
+import com.dynapi.domain.model.SchemaVersion;
 import com.dynapi.exception.GlobalExceptionHandler;
 import com.dynapi.repository.FieldDefinitionRepository;
 import com.dynapi.repository.FieldGroupRepository;
+import com.dynapi.service.SchemaLifecycleService;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.io.Decoders;
 import io.jsonwebtoken.security.Keys;
@@ -32,9 +35,12 @@ import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilde
 
 import javax.crypto.SecretKey;
 import java.util.List;
+import java.time.LocalDateTime;
+import java.util.Optional;
 import java.util.stream.Stream;
 
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.request;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -60,6 +66,9 @@ class SchemaAdminControllerSecurityIntegrationTest {
     @MockBean
     private FieldGroupRepository fieldGroupRepository;
 
+    @MockBean
+    private SchemaLifecycleService schemaLifecycleService;
+
     @Value("${security.jwt.secret}")
     private String jwtSecret;
 
@@ -69,8 +78,28 @@ class SchemaAdminControllerSecurityIntegrationTest {
                 .thenAnswer(invocation -> invocation.getArgument(0));
         when(fieldGroupRepository.save(any(FieldGroup.class)))
                 .thenAnswer(invocation -> invocation.getArgument(0));
+        FieldDefinition existingField = new FieldDefinition();
+        existingField.setId("field-id");
+        existingField.setFieldName("age");
+        when(fieldDefinitionRepository.findTopByFieldNameOrderByVersionDesc(anyString()))
+                .thenReturn(Optional.of(existingField));
+        when(fieldDefinitionRepository.deleteByFieldName(anyString())).thenReturn(1L);
+
+        FieldGroup existingGroup = new FieldGroup();
+        existingGroup.setId("group-id");
+        existingGroup.setName("profile");
+        when(fieldGroupRepository.findTopByNameOrderByVersionDesc(anyString()))
+                .thenReturn(Optional.of(existingGroup));
+        when(fieldGroupRepository.deleteByName(anyString())).thenReturn(1L);
+
         when(fieldDefinitionRepository.findAll()).thenReturn(List.of());
         when(fieldGroupRepository.findAll()).thenReturn(List.of());
+        when(schemaLifecycleService.publish(anyString()))
+                .thenReturn(schemaVersion("users", 1, SchemaLifecycleStatus.PUBLISHED));
+        when(schemaLifecycleService.deprecate(anyString()))
+                .thenReturn(schemaVersion("users", 1, SchemaLifecycleStatus.DEPRECATED));
+        when(schemaLifecycleService.listVersions(anyString()))
+                .thenReturn(List.of(schemaVersion("users", 1, SchemaLifecycleStatus.PUBLISHED)));
     }
 
     @ParameterizedTest
@@ -151,8 +180,20 @@ class SchemaAdminControllerSecurityIntegrationTest {
                                 }
                                 """),
                 Arguments.of("DELETE", "/api/admin/schema/field-groups/profile", null),
-                Arguments.of("GET", "/api/admin/schema/field-groups", null)
+                Arguments.of("GET", "/api/admin/schema/field-groups", null),
+                Arguments.of("POST", "/api/admin/schema/field-groups/profile/publish", null),
+                Arguments.of("POST", "/api/admin/schema/entities/users/deprecate", null),
+                Arguments.of("GET", "/api/admin/schema/entities/users/versions", null)
         );
+    }
+
+    private static SchemaVersion schemaVersion(String entity, int version, SchemaLifecycleStatus status) {
+        SchemaVersion schemaVersion = new SchemaVersion();
+        schemaVersion.setEntityName(entity);
+        schemaVersion.setVersion(version);
+        schemaVersion.setStatus(status);
+        schemaVersion.setCreatedAt(LocalDateTime.now());
+        return schemaVersion;
     }
 
     @TestConfiguration
@@ -160,8 +201,9 @@ class SchemaAdminControllerSecurityIntegrationTest {
         @Bean
         SchemaAdminController schemaAdminController(
                 FieldDefinitionRepository fieldDefinitionRepository,
-                FieldGroupRepository fieldGroupRepository) {
-            return new SchemaAdminController(fieldDefinitionRepository, fieldGroupRepository);
+                FieldGroupRepository fieldGroupRepository,
+                SchemaLifecycleService schemaLifecycleService) {
+            return new SchemaAdminController(fieldDefinitionRepository, fieldGroupRepository, schemaLifecycleService);
         }
 
         @Bean

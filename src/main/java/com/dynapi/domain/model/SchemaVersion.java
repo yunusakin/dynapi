@@ -1,18 +1,24 @@
 package com.dynapi.domain.model;
 
 import lombok.Data;
+import org.springframework.data.annotation.Id;
+import org.springframework.data.mongodb.core.mapping.Document;
+
 import java.time.LocalDateTime;
 import java.util.List;
 
 @Data
+@Document(collection = "schema_versions")
 public class SchemaVersion {
+    @Id
     private String id;
     private String entityName;
+    private String groupName;
     private Integer version;
-    private LocalDateTime effectiveFrom;
-    private LocalDateTime effectiveTo;
+    private SchemaLifecycleStatus status;
     private List<FieldDefinition> fields;
-    private String status; // DRAFT, ACTIVE, DEPRECATED
+    private LocalDateTime publishedAt;
+    private LocalDateTime deprecatedAt;
     private String createdBy;
     private LocalDateTime createdAt;
     private String modifiedBy;

@@ -132,7 +132,25 @@ curl -s -X POST "$BASE_URL/admin/schema/field-groups" \
   }'
 ```
 
-### Step C: Submit a form (public)
+### Step C: Publish schema snapshot (admin)
+
+Submit and query now use only `PUBLISHED` schema snapshots.
+
+Publish current group schema:
+
+```bash
+curl -s -X POST "$BASE_URL/admin/schema/field-groups/task-form/publish" \
+  -H "Authorization: Bearer $ADMIN_TOKEN"
+```
+
+Check version history:
+
+```bash
+curl -s "$BASE_URL/admin/schema/entities/tasks/versions" \
+  -H "Authorization: Bearer $ADMIN_TOKEN"
+```
+
+### Step D: Submit a form (public)
 
 ```bash
 curl -s -X POST "$BASE_URL/form" \
@@ -146,7 +164,7 @@ curl -s -X POST "$BASE_URL/form" \
   }'
 ```
 
-### Step D: Query submitted data (public)
+### Step E: Query submitted data (public)
 
 ```bash
 curl -s -X POST "$BASE_URL/query/tasks" \
@@ -168,9 +186,13 @@ Supported filter operators include:
 ## 6. Main Endpoints
 
 - `POST /api/form` submit dynamic data by group
+- `POST /api/forms/{groupId}/submit` submit dynamic data with group in path
 - `POST /api/query/{entity}` query dynamic records
 - `GET/POST/PUT/DELETE /api/admin/schema/field-definitions*` manage fields
 - `GET/POST/PUT/DELETE /api/admin/schema/field-groups*` manage groups
+- `POST /api/admin/schema/field-groups/{groupId}/publish` publish immutable schema snapshot
+- `GET /api/admin/schema/entities/{entity}/versions` list schema versions
+- `POST /api/admin/schema/entities/{entity}/deprecate` deprecate latest published schema
 
 ## 7. Configuration
 

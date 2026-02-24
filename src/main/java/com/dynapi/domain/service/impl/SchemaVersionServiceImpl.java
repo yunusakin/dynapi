@@ -1,6 +1,7 @@
 package com.dynapi.domain.service.impl;
 
 import com.dynapi.domain.service.SchemaVersionService;
+import com.dynapi.domain.model.SchemaLifecycleStatus;
 import com.dynapi.domain.model.SchemaVersion;
 import com.dynapi.domain.model.FieldDefinition;
 import com.dynapi.domain.event.DomainEvent;
@@ -35,7 +36,7 @@ public class SchemaVersionServiceImpl implements SchemaVersionService {
         schemaVersion.setEntityName(entityName);
         schemaVersion.setVersion(newVersion);
         schemaVersion.setFields(new ArrayList<>(fields));
-        schemaVersion.setStatus("DRAFT");
+        schemaVersion.setStatus(SchemaLifecycleStatus.DRAFT);
         schemaVersion.setCreatedAt(LocalDateTime.now());
         
         SchemaVersion saved = mongoTemplate.save(schemaVersion);
@@ -54,7 +55,7 @@ public class SchemaVersionServiceImpl implements SchemaVersionService {
     @Override
     public SchemaVersion getActiveVersion(String entityName) {
         Query query = new Query(Criteria.where("entityName").is(entityName)
-                .and("status").is("ACTIVE"));
+                .and("status").is(SchemaLifecycleStatus.PUBLISHED));
         return mongoTemplate.findOne(query, SchemaVersion.class);
     }
 
@@ -69,16 +70,16 @@ public class SchemaVersionServiceImpl implements SchemaVersionService {
     public void activateVersion(String entityName, Integer version) {
         // Deactivate current active version
         Query activeQuery = new Query(Criteria.where("entityName").is(entityName)
-                .and("status").is("ACTIVE"));
-        Update deactivateUpdate = new Update().set("status", "DEPRECATED")
-                .set("effectiveTo", LocalDateTime.now());
+                .and("status").is(SchemaLifecycleStatus.PUBLISHED));
+        Update deactivateUpdate = new Update().set("status", SchemaLifecycleStatus.DEPRECATED)
+                .set("deprecatedAt", LocalDateTime.now());
         mongoTemplate.updateFirst(activeQuery, deactivateUpdate, SchemaVersion.class);
 
         // Activate new version
         Query newVersionQuery = new Query(Criteria.where("entityName").is(entityName)
                 .and("version").is(version));
-        Update activateUpdate = new Update().set("status", "ACTIVE")
-                .set("effectiveFrom", LocalDateTime.now());
+        Update activateUpdate = new Update().set("status", SchemaLifecycleStatus.PUBLISHED)
+                .set("publishedAt", LocalDateTime.now());
         mongoTemplate.updateFirst(newVersionQuery, activateUpdate, SchemaVersion.class);
 
         // Publish event
@@ -94,8 +95,8 @@ public class SchemaVersionServiceImpl implements SchemaVersionService {
     public void deprecateVersion(String entityName, Integer version) {
         Query query = new Query(Criteria.where("entityName").is(entityName)
                 .and("version").is(version));
-        Update update = new Update().set("status", "DEPRECATED")
-                .set("effectiveTo", LocalDateTime.now());
+        Update update = new Update().set("status", SchemaLifecycleStatus.DEPRECATED)
+                .set("deprecatedAt", LocalDateTime.now());
         mongoTemplate.updateFirst(query, update, SchemaVersion.class);
     }
 
