@@ -38,6 +38,13 @@ security:
     secret: ZHluYXBpLWRldi1zZWNyZXQta2V5LWNoYW5nZS1tZS0xMjM0NTY3ODkw
 
 dynapi:
+  dev-auth:
+    enabled: true
+    default-subject: dev-admin
+    default-roles:
+      - ADMIN
+    default-ttl-seconds: 3600
+    max-ttl-seconds: 86400
   query:
     guardrails:
       max-page-size: 100

@@ -69,20 +69,21 @@ curl -i http://localhost:8080/api/api-docs
 
 - Admin schema routes (`/api/admin/**`) require JWT with `ADMIN` role.
 - Public routes (`/api/form`, `/api/query/**`) are currently open.
-- There is no token-issuing endpoint yet.
+- Local/dev token issuer is available at `POST /api/dev/auth/token` when `dynapi.dev-auth.enabled=true`.
 
-For local testing you can generate a JWT externally and use:
-- `alg`: `HS256`
-- `sub`: any username
-- `roles`: include `ADMIN`
-- signing secret (decoded text): `dynapi-dev-secret-key-change-me-1234567890`
-
-Then export:
+Issue a local admin token:
 
 ```bash
-export ADMIN_TOKEN="<your-jwt-token>"
 export BASE_URL="http://localhost:8080/api"
+export ADMIN_TOKEN=$(curl -s -X POST "$BASE_URL/dev/auth/token" \
+  -H "Content-Type: application/json" \
+  -d '{"subject":"local-admin","roles":["ADMIN"],"ttlSeconds":3600}' | jq -r '.data.token')
 ```
+
+If you need manual generation instead, JWT settings are:
+- `alg`: `HS256`
+- `roles`: include `ADMIN`
+- signing secret (decoded text): `dynapi-dev-secret-key-change-me-1234567890`
 
 ## 5. Learn by Using It (End-to-End)
 
@@ -192,6 +193,7 @@ Supported filter operators include:
 
 ## 6. Main Endpoints
 
+- `POST /api/dev/auth/token` issue local/dev JWT (feature-flagged by `dynapi.dev-auth.enabled`)
 - `POST /api/form` submit dynamic data by group
 - `POST /api/forms/{groupId}/submit` submit dynamic data with group in path
 - `POST /api/query/{entity}` query dynamic records

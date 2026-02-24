@@ -5,9 +5,15 @@ import io.jsonwebtoken.JwtException;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.io.Decoders;
 import io.jsonwebtoken.security.Keys;
+import java.time.Duration;
+import java.time.Instant;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Date;
 import java.util.HashSet;
+import java.util.LinkedHashSet;
+import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import javax.crypto.SecretKey;
@@ -46,6 +52,35 @@ public class JwtTokenService {
     }
   }
 
+  public IssuedToken issueToken(String subject, Collection<String> roles, Duration ttl) {
+    if (subject == null || subject.isBlank()) {
+      throw new IllegalArgumentException("Subject is required");
+    }
+    if (ttl == null || ttl.isNegative() || ttl.isZero()) {
+      throw new IllegalArgumentException("Token ttl must be > 0");
+    }
+
+    List<String> normalizedRoles = normalizeClaimRoles(roles);
+    if (normalizedRoles.isEmpty()) {
+      throw new IllegalArgumentException("At least one role is required");
+    }
+
+    Instant issuedAt = Instant.now();
+    Instant expiresAt = issuedAt.plus(ttl);
+    String normalizedSubject = subject.trim();
+
+    String token =
+        Jwts.builder()
+            .subject(normalizedSubject)
+            .claim("roles", normalizedRoles)
+            .issuedAt(Date.from(issuedAt))
+            .expiration(Date.from(expiresAt))
+            .signWith(signingKey)
+            .compact();
+
+    return new IssuedToken(token, issuedAt, expiresAt, normalizedSubject, normalizedRoles);
+  }
+
   private Set<SimpleGrantedAuthority> extractAuthorities(Object rolesClaim) {
     if (rolesClaim == null) {
       return Collections.emptySet();
@@ -75,4 +110,31 @@ public class JwtTokenService {
     String normalized = trimmed.startsWith("ROLE_") ? trimmed : "ROLE_" + trimmed;
     authorities.add(new SimpleGrantedAuthority(normalized));
   }
+
+  private List<String> normalizeClaimRoles(Collection<String> roles) {
+    if (roles == null) {
+      return List.of();
+    }
+
+    Set<String> unique = new LinkedHashSet<>();
+    for (String role : roles) {
+      if (role == null) {
+        continue;
+      }
+      String trimmed = role.trim();
+      if (trimmed.isEmpty()) {
+        continue;
+      }
+      if (trimmed.startsWith("ROLE_")) {
+        trimmed = trimmed.substring("ROLE_".length());
+      }
+      if (!trimmed.isBlank()) {
+        unique.add(trimmed);
+      }
+    }
+    return new ArrayList<>(unique);
+  }
+
+  public record IssuedToken(
+      String token, Instant issuedAt, Instant expiresAt, String subject, List<String> roles) {}
 }

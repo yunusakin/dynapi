@@ -37,6 +37,82 @@
       "description": "Create schema definitions and groups first before submitting/querying data.",
       "item": [
         {
+          "name": "POST /dev/auth/token - Issue Dev JWT",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "  const json = pm.response.json();",
+                  "  const token = json?.data?.token;",
+                  "  if (token) pm.environment.set(\"adminToken\", token);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"subject\": \"{{devTokenSubject}}\",\n  \"roles\": [\"ADMIN\"],\n  \"ttlSeconds\": {{devTokenTtl}}\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/dev/auth/token",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "dev",
+                "auth",
+                "token"
+              ]
+            },
+            "description": "Issues a local development JWT and stores it into {{adminToken}} via test script."
+          },
+          "response": [
+            {
+              "name": "Success",
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "body": "{\n  \"success\": true,\n  \"message\": \"Dev token issued\",\n  \"data\": {\n    \"token\": \"<jwt>\",\n    \"tokenType\": \"Bearer\",\n    \"subject\": \"local-admin\",\n    \"roles\": [\"ADMIN\"],\n    \"issuedAt\": \"2026-02-24T00:00:00Z\",\n    \"expiresAt\": \"2026-02-24T01:00:00Z\"\n  }\n}",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ]
+            },
+            {
+              "name": "Bad Request - TTL Exceeds Max",
+              "status": "Bad Request",
+              "code": 400,
+              "_postman_previewlanguage": "json",
+              "body": "{\n  \"title\": \"Invalid Request\",\n  \"status\": 400,\n  \"detail\": \"ttlSeconds exceeds max allowed: 86400\"\n}",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ]
+            }
+          ]
+        },
+        {
           "name": "POST /admin/schema/field-definitions - Create Field Definition",
           "request": {
             "method": "POST",
