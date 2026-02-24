@@ -2,14 +2,12 @@ package com.dynapi.service;
 
 import com.dynapi.config.QueryGuardrailProperties;
 import com.dynapi.domain.model.FieldDefinition;
-import com.dynapi.domain.model.FieldGroup;
 import com.dynapi.domain.model.FieldType;
+import com.dynapi.domain.model.SchemaVersion;
 import com.dynapi.dto.DynamicQueryRequest;
 import com.dynapi.dto.FilterRule;
 import com.dynapi.dto.FormRecordDto;
 import com.dynapi.dto.PaginatedResponse;
-import com.dynapi.repository.FieldDefinitionRepository;
-import com.dynapi.repository.FieldGroupRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
@@ -25,7 +23,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
-import java.util.stream.StreamSupport;
 
 @Service
 @RequiredArgsConstructor
@@ -41,8 +38,7 @@ public class DynamicQueryService {
     private static final Set<String> OBJECT_ARRAY_OPERATORS = Set.of("eq", "ne");
 
     private final MongoTemplate mongoTemplate;
-    private final FieldGroupRepository fieldGroupRepository;
-    private final FieldDefinitionRepository fieldDefinitionRepository;
+    private final SchemaLifecycleService schemaLifecycleService;
     private final QueryGuardrailProperties guardrailProperties;
 
     public PaginatedResponse<FormRecordDto> query(String entity, DynamicQueryRequest request) {
@@ -128,20 +124,11 @@ public class DynamicQueryService {
     }
 
     private Map<String, FieldType> loadFieldTypesByEntity(String entity) {
-        FieldGroup fieldGroup = fieldGroupRepository.findByEntity(entity)
-                .orElseThrow(() -> new IllegalArgumentException("Schema group not found for entity: " + entity));
+        SchemaVersion publishedSchema = schemaLifecycleService.latestPublished(entity);
+        List<FieldDefinition> definitions = publishedSchema.getFields();
 
-        List<String> fieldNames = fieldGroup.getFieldNames();
-        if (fieldNames == null || fieldNames.isEmpty()) {
-            throw new IllegalArgumentException("Field group has no fields for entity: " + entity);
-        }
-
-        List<FieldDefinition> definitions = StreamSupport
-                .stream(fieldDefinitionRepository.findAllById(fieldNames).spliterator(), false)
-                .collect(Collectors.toList());
-
-        if (definitions.isEmpty()) {
-            throw new IllegalArgumentException("No field definitions found for entity: " + entity);
+        if (definitions == null || definitions.isEmpty()) {
+            throw new IllegalArgumentException("Published schema has no fields for entity: " + entity);
         }
 
         Map<String, FieldType> fieldTypeByPath = new HashMap<>();

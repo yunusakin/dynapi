@@ -2,14 +2,13 @@ package com.dynapi.service;
 
 import com.dynapi.config.QueryGuardrailProperties;
 import com.dynapi.domain.model.FieldDefinition;
-import com.dynapi.domain.model.FieldGroup;
+import com.dynapi.domain.model.SchemaLifecycleStatus;
+import com.dynapi.domain.model.SchemaVersion;
 import com.dynapi.domain.model.FieldType;
 import com.dynapi.dto.DynamicQueryRequest;
 import com.dynapi.dto.FilterRule;
 import com.dynapi.dto.FormRecordDto;
 import com.dynapi.dto.PaginatedResponse;
-import com.dynapi.repository.FieldDefinitionRepository;
-import com.dynapi.repository.FieldGroupRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -18,9 +17,9 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.data.mongodb.core.MongoTemplate;
 
 import java.util.ArrayList;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -38,10 +37,7 @@ class DynamicQueryServiceTest {
     private MongoTemplate mongoTemplate;
 
     @Mock
-    private FieldGroupRepository fieldGroupRepository;
-
-    @Mock
-    private FieldDefinitionRepository fieldDefinitionRepository;
+    private SchemaLifecycleService schemaLifecycleService;
 
     private DynamicQueryService dynamicQueryService;
 
@@ -54,24 +50,24 @@ class DynamicQueryServiceTest {
 
         dynamicQueryService = new DynamicQueryService(
                 mongoTemplate,
-                fieldGroupRepository,
-                fieldDefinitionRepository,
+                schemaLifecycleService,
                 guardrails
         );
-
-        FieldGroup group = new FieldGroup();
-        group.setName("task-group");
-        group.setEntity("tasks");
-        group.setFieldNames(List.of("title", "priority", "profile"));
-        lenient().when(fieldGroupRepository.findByEntity("tasks")).thenReturn(Optional.of(group));
 
         FieldDefinition title = field("title", FieldType.STRING);
         FieldDefinition priority = field("priority", FieldType.NUMBER);
         FieldDefinition profile = field("profile", FieldType.OBJECT);
         FieldDefinition age = field("age", FieldType.NUMBER);
         profile.setSubFields(List.of(age));
-        lenient().when(fieldDefinitionRepository.findAllById(group.getFieldNames()))
-                .thenReturn(List.of(title, priority, profile));
+
+        SchemaVersion published = new SchemaVersion();
+        published.setEntityName("tasks");
+        published.setVersion(1);
+        published.setStatus(SchemaLifecycleStatus.PUBLISHED);
+        published.setCreatedAt(LocalDateTime.now());
+        published.setFields(List.of(title, priority, profile));
+
+        lenient().when(schemaLifecycleService.latestPublished("tasks")).thenReturn(published);
     }
 
     @Test

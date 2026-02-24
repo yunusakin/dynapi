@@ -3,12 +3,15 @@ package com.dynapi.domain.model;
 import lombok.Data;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
+import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.mapping.Document;
 import java.util.List;
 
 @Data
 @Document
 public class FieldDefinition {
+    @Id
+    private String id;
     @NotBlank
     private String fieldName;
     @NotNull
