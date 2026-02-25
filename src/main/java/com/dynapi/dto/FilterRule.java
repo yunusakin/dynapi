@@ -11,8 +11,8 @@ public record FilterRule(
         String field,
     @Schema(
             description =
-                "Operator. Leaf examples: eq, ne, gt, lt, gte, lte, in, regex. Combinators: and,"
-                    + " or, not.",
+                "Operator. Leaf examples: eq, ne, gt, gte, lt, lte, in, nin, regex, exists."
+                    + " Combinators: and, or, not (case-insensitive: AND/OR/NOT supported).",
             example = "eq")
         String operator,
     @Schema(description = "Comparison value for leaf operators.", example = "Alice") Object value,

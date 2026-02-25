@@ -30,12 +30,14 @@ public class DynamicQueryService {
 
   private static final Set<String> COMBINATOR_OPERATORS = Set.of("and", "or", "not");
   private static final Set<String> NUMBER_OPERATORS =
-      Set.of("eq", "ne", "gt", "lt", "gte", "lte", "in");
+      Set.of("eq", "ne", "gt", "lt", "gte", "lte", "in", "nin", "exists");
   private static final Set<String> DATE_OPERATORS =
-      Set.of("eq", "ne", "gt", "lt", "gte", "lte", "in");
-  private static final Set<String> STRING_OPERATORS = Set.of("eq", "ne", "in", "regex");
-  private static final Set<String> BOOLEAN_OPERATORS = Set.of("eq", "ne", "in");
-  private static final Set<String> OBJECT_ARRAY_OPERATORS = Set.of("eq", "ne");
+      Set.of("eq", "ne", "gt", "lt", "gte", "lte", "in", "nin", "exists");
+  private static final Set<String> STRING_OPERATORS =
+      Set.of("eq", "ne", "in", "nin", "regex", "exists");
+  private static final Set<String> BOOLEAN_OPERATORS =
+      Set.of("eq", "ne", "in", "nin", "exists");
+  private static final Set<String> OBJECT_ARRAY_OPERATORS = Set.of("eq", "ne", "exists");
 
   private final MongoTemplate mongoTemplate;
   private final SchemaLifecycleService schemaLifecycleService;
@@ -53,6 +55,7 @@ public class DynamicQueryService {
     validateFilters(filterNodes, allowedFieldTypes);
 
     Query query = new Query();
+    query.addCriteria(Criteria.where("deleted").ne(true));
     if (!filterNodes.isEmpty()) {
       query.addCriteria(buildCriteria(filterNodes));
     }
@@ -246,11 +249,20 @@ public class DynamicQueryService {
 
   private void validateOperatorValue(
       String field, String operator, FieldType fieldType, Object value) {
-    if ("in".equals(operator)) {
+    if ("in".equals(operator) || "nin".equals(operator)) {
       if (!(value instanceof Collection<?> collection)) {
-        throw new IllegalArgumentException("IN operator requires a list for field: " + field);
+        throw new IllegalArgumentException(
+            operator.toUpperCase() + " operator requires a list for field: " + field);
       }
-      validateCollectionValues(field, fieldType, collection);
+      validateCollectionValues(field, fieldType, collection, operator);
+      return;
+    }
+
+    if ("exists".equals(operator)) {
+      if (!(value instanceof Boolean)) {
+        throw new IllegalArgumentException(
+            "EXISTS operator requires boolean value for field: " + field);
+      }
       return;
     }
 
@@ -286,29 +298,30 @@ public class DynamicQueryService {
   }
 
   private void validateCollectionValues(
-      String field, FieldType fieldType, Collection<?> collection) {
+      String field, FieldType fieldType, Collection<?> collection, String operator) {
     for (Object item : collection) {
       switch (fieldType) {
         case NUMBER -> {
           if (!(item instanceof Number)) {
             throw new IllegalArgumentException(
-                "IN operator requires numeric list for field: " + field);
+                operator.toUpperCase() + " operator requires numeric list for field: " + field);
           }
         }
         case BOOLEAN -> {
           if (!(item instanceof Boolean)) {
             throw new IllegalArgumentException(
-                "IN operator requires boolean list for field: " + field);
+                operator.toUpperCase() + " operator requires boolean list for field: " + field);
           }
         }
         case DATE, STRING -> {
           if (!(item instanceof String)) {
             throw new IllegalArgumentException(
-                "IN operator requires string list for field: " + field);
+                operator.toUpperCase() + " operator requires string list for field: " + field);
           }
         }
         case OBJECT, ARRAY ->
-            throw new IllegalArgumentException("IN operator is not allowed for field: " + field);
+            throw new IllegalArgumentException(
+                operator.toUpperCase() + " operator is not allowed for field: " + field);
       }
     }
   }
@@ -360,7 +373,9 @@ public class DynamicQueryService {
           case "gte" -> Criteria.where(leafNode.field()).gte(leafNode.value());
           case "lte" -> Criteria.where(leafNode.field()).lte(leafNode.value());
           case "in" -> Criteria.where(leafNode.field()).in((Collection<?>) leafNode.value());
+          case "nin" -> Criteria.where(leafNode.field()).nin((Collection<?>) leafNode.value());
           case "regex" -> Criteria.where(leafNode.field()).regex((String) leafNode.value());
+          case "exists" -> Criteria.where(leafNode.field()).exists((Boolean) leafNode.value());
           default -> Criteria.where(leafNode.field()).is(leafNode.value());
         };
       }

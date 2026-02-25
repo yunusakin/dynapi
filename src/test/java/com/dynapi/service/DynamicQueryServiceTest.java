@@ -25,9 +25,11 @@ import java.util.Map;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.data.mongodb.core.MongoTemplate;
+import org.springframework.data.mongodb.core.query.Query;
 
 @ExtendWith(MockitoExtension.class)
 class DynamicQueryServiceTest {
@@ -62,6 +64,8 @@ class DynamicQueryServiceTest {
     published.setFields(List.of(title, priority, profile));
 
     lenient().when(schemaLifecycleService.latestPublished("tasks")).thenReturn(published);
+    lenient().when(mongoTemplate.find(any(), eq(Map.class), eq("tasks"))).thenReturn(List.of());
+    lenient().when(mongoTemplate.count(any(), eq("tasks"))).thenReturn(0L);
   }
 
   @Test
@@ -138,6 +142,90 @@ class DynamicQueryServiceTest {
             IllegalArgumentException.class, () -> dynamicQueryService.query("tasks", request));
 
     assertTrue(ex.getMessage().contains("Filter rule count exceeds max"));
+  }
+
+  @Test
+  void query_allowsNinOnNumericField() {
+    DynamicQueryRequest request =
+        new DynamicQueryRequest(List.of(filter("priority", "nin", List.of(1, 2))), 0, 10, null, null);
+
+    PaginatedResponse<FormRecordDto> response = dynamicQueryService.query("tasks", request);
+
+    assertEquals(0, response.page());
+    assertEquals(10, response.size());
+  }
+
+  @Test
+  void query_rejectsNinWhenValueIsNotCollection() {
+    DynamicQueryRequest request =
+        new DynamicQueryRequest(List.of(filter("priority", "nin", 2)), null, null, null, null);
+
+    IllegalArgumentException ex =
+        assertThrows(
+            IllegalArgumentException.class, () -> dynamicQueryService.query("tasks", request));
+
+    assertTrue(ex.getMessage().contains("NIN operator requires a list"));
+  }
+
+  @Test
+  void query_allowsExistsWithBooleanValues() {
+    DynamicQueryRequest existsTrueRequest =
+        new DynamicQueryRequest(List.of(filter("profile", "exists", true)), 0, 10, null, null);
+    DynamicQueryRequest existsFalseRequest =
+        new DynamicQueryRequest(List.of(filter("profile.age", "exists", false)), 0, 10, null, null);
+
+    PaginatedResponse<FormRecordDto> trueResponse =
+        dynamicQueryService.query("tasks", existsTrueRequest);
+    PaginatedResponse<FormRecordDto> falseResponse =
+        dynamicQueryService.query("tasks", existsFalseRequest);
+
+    assertEquals(0, trueResponse.page());
+    assertEquals(0, falseResponse.page());
+  }
+
+  @Test
+  void query_rejectsExistsWhenValueIsNotBoolean() {
+    DynamicQueryRequest request =
+        new DynamicQueryRequest(
+            List.of(filter("profile", "exists", "true")), null, null, null, null);
+
+    IllegalArgumentException ex =
+        assertThrows(
+            IllegalArgumentException.class, () -> dynamicQueryService.query("tasks", request));
+
+    assertTrue(ex.getMessage().contains("EXISTS operator requires boolean value"));
+  }
+
+  @Test
+  void query_allowsUppercaseCombinators() {
+    FilterRule notRule = new FilterRule(null, "NOT", null, List.of(filter("priority", "gt", 1)));
+    FilterRule orRule =
+        new FilterRule(
+            null,
+            "OR",
+            null,
+            List.of(filter("title", "eq", "A"), filter("title", "eq", "B")));
+    FilterRule andRule = new FilterRule(null, "AND", null, List.of(orRule, notRule));
+
+    DynamicQueryRequest request = new DynamicQueryRequest(List.of(andRule), 0, 10, null, null);
+
+    PaginatedResponse<FormRecordDto> response = dynamicQueryService.query("tasks", request);
+
+    assertEquals(0, response.page());
+    assertEquals(10, response.size());
+  }
+
+  @Test
+  void query_excludesSoftDeletedRecordsByDefault() {
+    DynamicQueryRequest request = new DynamicQueryRequest(null, 0, 10, null, null);
+
+    dynamicQueryService.query("tasks", request);
+
+    ArgumentCaptor<Query> queryCaptor = ArgumentCaptor.forClass(Query.class);
+    verify(mongoTemplate).find(queryCaptor.capture(), eq(Map.class), eq("tasks"));
+    String queryJson = queryCaptor.getValue().getQueryObject().toJson();
+    assertTrue(queryJson.contains("\"deleted\""));
+    assertTrue(queryJson.contains("\"$ne\""));
   }
 
   @Test

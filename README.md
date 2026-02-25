@@ -189,13 +189,16 @@ curl -s -X POST "$BASE_URL/query/tasks" \
 ```
 
 Supported filter operators include:
-- `eq`, `ne`, `gt`, `lt`, `gte`, `lte`, `in`, `regex`, `and`, `or`, `not`
+- `eq`, `ne`, `gt`, `gte`, `lt`, `lte`, `in`, `nin`, `regex`, `exists`, `and`, `or`, `not` (`AND`/`OR`/`NOT` also supported)
 
 ## 6. Main Endpoints
 
 - `POST /api/dev/auth/token` issue local/dev JWT (feature-flagged by `dynapi.dev-auth.enabled`)
 - `POST /api/form` submit dynamic data by group
 - `POST /api/forms/{groupId}/submit` submit dynamic data with group in path
+- `PATCH /api/records/{entity}/{id}` partially update a dynamic record (published schema validated)
+- `PUT /api/records/{entity}/{id}` replace a dynamic record (published schema validated)
+- `DELETE /api/records/{entity}/{id}` soft-delete a dynamic record
 - `POST /api/query/{entity}` query dynamic records
 - `GET/POST/PUT/DELETE /api/admin/schema/field-definitions*` manage fields
 - `GET/POST/PUT/DELETE /api/admin/schema/field-groups*` manage groups
