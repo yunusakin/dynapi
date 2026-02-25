@@ -10,7 +10,7 @@ import org.springframework.stereotype.Component;
 @Component
 @ConfigurationProperties(prefix = "dynapi.query.guardrails")
 public class QueryGuardrailProperties {
-  private int maxPageSize = 100;
-  private int maxFilterDepth = 3;
-  private int maxRuleCount = 20;
+    private int maxPageSize = 100;
+    private int maxFilterDepth = 3;
+    private int maxRuleCount = 20;
 }

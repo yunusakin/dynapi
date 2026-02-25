@@ -20,40 +20,40 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping(path = "/records", version = "1")
 @RequiredArgsConstructor
 public class RecordController {
-  private final DynamicRecordService dynamicRecordService;
+    private final DynamicRecordService dynamicRecordService;
 
-  @PatchMapping("/{entity}/{id}")
-  @Operation(
-      summary = "Patch Dynamic Record",
-      description = "Partially updates a dynamic record and validates result against published schema.")
-  public ApiResponse<FormRecordDto> patchRecord(
-      @PathVariable String entity,
-      @PathVariable String id,
-      @RequestBody @Valid RecordMutationRequest request) {
-    FormRecordDto updated =
-        dynamicRecordService.patch(entity, id, request, LocaleContextHolder.getLocale());
-    return ApiResponse.success(updated, "Record patched successfully");
-  }
+    @PatchMapping("/{entity}/{id}")
+    @Operation(
+            summary = "Patch Dynamic Record",
+            description = "Partially updates a dynamic record and validates result against published schema.")
+    public ApiResponse<FormRecordDto> patchRecord(
+            @PathVariable String entity,
+            @PathVariable String id,
+            @RequestBody @Valid RecordMutationRequest request) {
+        FormRecordDto updated =
+                dynamicRecordService.patch(entity, id, request, LocaleContextHolder.getLocale());
+        return ApiResponse.success(updated, "Record patched successfully");
+    }
 
-  @PutMapping("/{entity}/{id}")
-  @Operation(
-      summary = "Replace Dynamic Record",
-      description = "Replaces a dynamic record and validates payload against published schema.")
-  public ApiResponse<FormRecordDto> replaceRecord(
-      @PathVariable String entity,
-      @PathVariable String id,
-      @RequestBody @Valid RecordMutationRequest request) {
-    FormRecordDto updated =
-        dynamicRecordService.replace(entity, id, request, LocaleContextHolder.getLocale());
-    return ApiResponse.success(updated, "Record replaced successfully");
-  }
+    @PutMapping("/{entity}/{id}")
+    @Operation(
+            summary = "Replace Dynamic Record",
+            description = "Replaces a dynamic record and validates payload against published schema.")
+    public ApiResponse<FormRecordDto> replaceRecord(
+            @PathVariable String entity,
+            @PathVariable String id,
+            @RequestBody @Valid RecordMutationRequest request) {
+        FormRecordDto updated =
+                dynamicRecordService.replace(entity, id, request, LocaleContextHolder.getLocale());
+        return ApiResponse.success(updated, "Record replaced successfully");
+    }
 
-  @DeleteMapping("/{entity}/{id}")
-  @Operation(
-      summary = "Soft Delete Dynamic Record",
-      description = "Marks a dynamic record as deleted. Deleted records are excluded from queries.")
-  public ApiResponse<Void> deleteRecord(@PathVariable String entity, @PathVariable String id) {
-    dynamicRecordService.softDelete(entity, id);
-    return ApiResponse.success(null, "Record deleted successfully");
-  }
+    @DeleteMapping("/{entity}/{id}")
+    @Operation(
+            summary = "Soft Delete Dynamic Record",
+            description = "Marks a dynamic record as deleted. Deleted records are excluded from queries.")
+    public ApiResponse<Void> deleteRecord(@PathVariable String entity, @PathVariable String id) {
+        dynamicRecordService.softDelete(entity, id);
+        return ApiResponse.success(null, "Record deleted successfully");
+    }
 }

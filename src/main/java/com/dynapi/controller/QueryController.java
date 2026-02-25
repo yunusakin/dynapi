@@ -18,15 +18,15 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping(path = "/query", version = "1")
 @RequiredArgsConstructor
 public class QueryController {
-  private final DynamicQueryService dynamicQueryService;
+    private final DynamicQueryService dynamicQueryService;
 
-  @PostMapping("/{entity}")
-  @Operation(
-      summary = "Query Dynamic Records",
-      description = "Queries records for an entity using filters, pagination, and sorting.")
-  public ApiResponse<PaginatedResponse<FormRecordDto>> query(
-      @PathVariable String entity, @RequestBody @Valid DynamicQueryRequest request) {
-    PaginatedResponse<FormRecordDto> result = dynamicQueryService.query(entity, request);
-    return ApiResponse.success(result, "Query successful");
-  }
+    @PostMapping("/{entity}")
+    @Operation(
+            summary = "Query Dynamic Records",
+            description = "Queries records for an entity using filters, pagination, and sorting.")
+    public ApiResponse<PaginatedResponse<FormRecordDto>> query(
+            @PathVariable String entity, @RequestBody @Valid DynamicQueryRequest request) {
+        PaginatedResponse<FormRecordDto> result = dynamicQueryService.query(entity, request);
+        return ApiResponse.success(result, "Query successful");
+    }
 }

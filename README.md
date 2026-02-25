@@ -99,6 +99,8 @@ curl -s -X POST "$BASE_URL/admin/schema/field-definitions" \
     "fieldName": "title",
     "type": "STRING",
     "required": true,
+    "unique": true,
+    "indexed": true,
     "version": 1
   }'
 ```
@@ -158,6 +160,13 @@ curl -s -X POST "$BASE_URL/admin/schema/entities/tasks/rollback/1" \
   -H "Authorization: Bearer $ADMIN_TOKEN"
 ```
 
+Sync Mongo indexes from the latest published schema (optional but recommended after publish):
+
+```bash
+curl -s -X POST "$BASE_URL/admin/schema/entities/tasks/indexes/sync" \
+  -H "Authorization: Bearer $ADMIN_TOKEN"
+```
+
 ### Step D: Submit a form (public)
 
 ```bash
@@ -206,6 +215,7 @@ Supported filter operators include:
 - `GET /api/admin/schema/entities/{entity}/versions` list schema versions
 - `POST /api/admin/schema/entities/{entity}/rollback/{version}` rollback to a previous schema snapshot
 - `POST /api/admin/schema/entities/{entity}/deprecate` deprecate latest published schema
+- `POST /api/admin/schema/entities/{entity}/indexes/sync` sync unique/indexed Mongo indexes from latest `PUBLISHED` schema
 
 ## 7. Configuration
 

@@ -16,14 +16,14 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping(path = "/form", version = "1")
 @RequiredArgsConstructor
 public class FormController {
-  private final FormSubmissionService formSubmissionService;
+    private final FormSubmissionService formSubmissionService;
 
-  @PostMapping
-  @Operation(
-      summary = "Submit Dynamic Form",
-      description = "Submits dynamic form payload for a schema group.")
-  public ApiResponse<Void> submitForm(@RequestBody @Valid FormSubmissionRequest request) {
-    formSubmissionService.submitForm(request, LocaleContextHolder.getLocale());
-    return ApiResponse.success(null, "Form submitted successfully");
-  }
+    @PostMapping
+    @Operation(
+            summary = "Submit Dynamic Form",
+            description = "Submits dynamic form payload for a schema group.")
+    public ApiResponse<Void> submitForm(@RequestBody @Valid FormSubmissionRequest request) {
+        formSubmissionService.submitForm(request, LocaleContextHolder.getLocale());
+        return ApiResponse.success(null, "Form submitted successfully");
+    }
 }
