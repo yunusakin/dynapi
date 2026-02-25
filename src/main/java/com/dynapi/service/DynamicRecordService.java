@@ -32,7 +32,6 @@ public class DynamicRecordService {
     private final SchemaLifecycleService schemaLifecycleService;
     private final DynamicValidator dynamicValidator;
     private final UniqueFieldConstraintService uniqueFieldConstraintService;
-    private final com.dynapi.audit.AuditPublisher auditPublisher;
 
     public FormRecordDto patch(String entity, String id, RecordMutationRequest request, Locale locale) {
         Map<String, Object> existing = loadActiveRecord(entity, id);
@@ -44,7 +43,6 @@ public class DynamicRecordService {
         uniqueFieldConstraintService.validateForUpdate(entity, existing.get("_id"), merged, schema);
 
         Map<String, Object> saved = saveRecord(entity, existing.get("_id"), merged);
-        auditPublisher.publish("FORM_PATCH", entity, merged);
         return toRecordDto(saved);
     }
 
@@ -58,7 +56,6 @@ public class DynamicRecordService {
                 entity, existing.get("_id"), replacement, schema);
 
         Map<String, Object> saved = saveRecord(entity, existing.get("_id"), replacement);
-        auditPublisher.publish("FORM_REPLACE", entity, replacement);
         return toRecordDto(saved);
     }
 
@@ -68,14 +65,6 @@ public class DynamicRecordService {
         existing.put("deletedAt", LocalDateTime.now().toString());
 
         mongoTemplate.save(existing, entity);
-        auditPublisher.publish(
-                "FORM_DELETE",
-                entity,
-                Map.of(
-                        "id",
-                        existing.get("_id") == null ? id : existing.get("_id").toString(),
-                        "deleted",
-                        true));
     }
 
     private Map<String, Object> saveRecord(String entity, Object id, Map<String, Object> data) {

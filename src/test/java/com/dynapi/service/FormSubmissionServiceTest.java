@@ -33,8 +33,6 @@ import org.springframework.data.mongodb.core.MongoTemplate;
 class FormSubmissionServiceTest {
 
     @Mock
-    private com.dynapi.audit.AuditPublisher auditPublisher;
-    @Mock
     private FieldGroupRepository fieldGroupRepository;
     @Mock
     private MongoTemplate mongoTemplate;
@@ -53,7 +51,6 @@ class FormSubmissionServiceTest {
     void setUp() {
         formSubmissionService =
                 new FormSubmissionService(
-                        auditPublisher,
                         fieldGroupRepository,
                         mongoTemplate,
                         messageSource,
@@ -108,7 +105,6 @@ class FormSubmissionServiceTest {
         verify(dynamicValidator).validate(eq(payload), eq(List.of(title)), any(Locale.class));
         verify(uniqueFieldConstraintService).validateForCreate("tasks", payload, List.of(title));
         verify(mongoTemplate).save(payload, "tasks");
-        verify(auditPublisher).publish("FORM_SUBMIT", "tasks", payload);
     }
 
     @Test
@@ -142,7 +138,6 @@ class FormSubmissionServiceTest {
         verify(dynamicValidator).validate(eq(payload), eq(List.of(title)), any(Locale.class));
         verify(uniqueFieldConstraintService).validateForCreate("tasks", payload, List.of(title));
         verify(mongoTemplate).save(payload, "tasks");
-        verify(auditPublisher).publish("FORM_SUBMIT", "tasks", payload);
     }
 
     @Test

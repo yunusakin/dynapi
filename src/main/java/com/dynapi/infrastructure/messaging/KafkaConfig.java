@@ -9,7 +9,6 @@ import org.springframework.kafka.config.TopicBuilder;
 public class KafkaConfig {
     public static final String SCHEMA_CHANGES_TOPIC = "schema-changes";
     public static final String DATA_VALIDATION_TOPIC = "data-validation";
-    public static final String AUDIT_EVENTS_TOPIC = "audit-events";
 
     @Bean
     public NewTopic schemaChangesTopic() {
@@ -19,10 +18,5 @@ public class KafkaConfig {
     @Bean
     public NewTopic dataValidationTopic() {
         return TopicBuilder.name(DATA_VALIDATION_TOPIC).partitions(1).replicas(1).build();
-    }
-
-    @Bean
-    public NewTopic auditEventsTopic() {
-        return TopicBuilder.name(AUDIT_EVENTS_TOPIC).partitions(1).replicas(1).build();
     }
 }

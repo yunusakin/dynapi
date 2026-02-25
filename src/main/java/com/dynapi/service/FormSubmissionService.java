@@ -19,7 +19,6 @@ import org.springframework.stereotype.Service;
 @Service
 @RequiredArgsConstructor
 public class FormSubmissionService {
-    private final com.dynapi.audit.AuditPublisher auditPublisher;
     private final FieldGroupRepository fieldGroupRepository;
     private final MongoTemplate mongoTemplate;
     private final MessageSource messageSource;
@@ -48,8 +47,6 @@ public class FormSubmissionService {
         // 4. Save form data to collection by entity
         String collectionName = group.getEntity();
         mongoTemplate.save(request.data(), collectionName);
-        // 5. Audit event
-        auditPublisher.publish("FORM_SUBMIT", collectionName, request.data());
     }
 
     private Optional<FieldGroup> resolveGroup(String groupIdOrName) {

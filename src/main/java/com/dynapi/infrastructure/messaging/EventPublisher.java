@@ -19,8 +19,4 @@ public class EventPublisher {
     public void publishDataValidation(DomainEvent<?> event) {
         kafkaTemplate.send(KafkaConfig.DATA_VALIDATION_TOPIC, event);
     }
-
-    public void publishAuditEvent(DomainEvent<?> event) {
-        kafkaTemplate.send(KafkaConfig.AUDIT_EVENTS_TOPIC, event);
-    }
 }

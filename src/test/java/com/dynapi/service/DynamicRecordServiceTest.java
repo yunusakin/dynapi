@@ -45,8 +45,6 @@ class DynamicRecordServiceTest {
     private DynamicValidator dynamicValidator;
     @Mock
     private UniqueFieldConstraintService uniqueFieldConstraintService;
-    @Mock
-    private com.dynapi.audit.AuditPublisher auditPublisher;
 
     private DynamicRecordService dynamicRecordService;
 
@@ -57,8 +55,7 @@ class DynamicRecordServiceTest {
                         mongoTemplate,
                         schemaLifecycleService,
                         dynamicValidator,
-                        uniqueFieldConstraintService,
-                        auditPublisher);
+                        uniqueFieldConstraintService);
     }
 
     @Test
@@ -98,7 +95,6 @@ class DynamicRecordServiceTest {
         assertEquals(objectId.toHexString(), result.id());
         assertEquals("Old", result.data().get("title"));
         assertEquals(31, ((Map<?, ?>) result.data().get("profile")).get("age"));
-        verify(auditPublisher).publish(eq("FORM_PATCH"), eq("tasks"), any(Map.class));
     }
 
     @Test
@@ -123,7 +119,6 @@ class DynamicRecordServiceTest {
         assertEquals(objectId.toHexString(), result.id());
         assertEquals("New", result.data().get("title"));
         assertEquals(5, result.data().get("priority"));
-        verify(auditPublisher).publish(eq("FORM_REPLACE"), eq("tasks"), eq(replacement));
     }
 
     @Test
@@ -142,7 +137,6 @@ class DynamicRecordServiceTest {
         Map<String, Object> saved = savedCaptor.getValue();
         assertEquals(Boolean.TRUE, saved.get("deleted"));
         assertTrue(saved.get("deletedAt") instanceof String);
-        verify(auditPublisher).publish(eq("FORM_DELETE"), eq("tasks"), any(Map.class));
     }
 
     @Test
