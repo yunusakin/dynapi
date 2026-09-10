@@ -32,22 +32,26 @@ public class DynamicRecordService {
     private final SchemaLifecycleService schemaLifecycleService;
     private final DynamicValidator dynamicValidator;
     private final UniqueFieldConstraintService uniqueFieldConstraintService;
+    private final AuditService auditService;
 
     public FormRecordDto patch(String entity, String id, RecordMutationRequest request, Locale locale) {
         Map<String, Object> existing = loadActiveRecord(entity, id);
+        Map<String, Object> beforeData = extractData(existing);
         Map<String, Object> patchData = sanitizeInput(request.data());
-        Map<String, Object> merged = deepMerge(extractData(existing), patchData);
+        Map<String, Object> merged = deepMerge(beforeData, patchData);
         List<FieldDefinition> schema = loadPublishedSchema(entity);
 
         dynamicValidator.validate(merged, schema, locale);
         uniqueFieldConstraintService.validateForUpdate(entity, existing.get("_id"), merged, schema);
 
         Map<String, Object> saved = saveRecord(entity, existing.get("_id"), merged);
+        auditService.record("RECORD:" + entity, id, "RECORD_PATCHED", beforeData, extractData(saved));
         return toRecordDto(saved);
     }
 
     public FormRecordDto replace(String entity, String id, RecordMutationRequest request, Locale locale) {
         Map<String, Object> existing = loadActiveRecord(entity, id);
+        Map<String, Object> beforeData = extractData(existing);
         Map<String, Object> replacement = sanitizeInput(request.data());
         List<FieldDefinition> schema = loadPublishedSchema(entity);
 
@@ -56,15 +60,18 @@ public class DynamicRecordService {
                 entity, existing.get("_id"), replacement, schema);
 
         Map<String, Object> saved = saveRecord(entity, existing.get("_id"), replacement);
+        auditService.record("RECORD:" + entity, id, "RECORD_REPLACED", beforeData, extractData(saved));
         return toRecordDto(saved);
     }
 
     public void softDelete(String entity, String id) {
         Map<String, Object> existing = loadActiveRecord(entity, id);
+        Map<String, Object> beforeData = extractData(existing);
         existing.put("deleted", true);
         existing.put("deletedAt", LocalDateTime.now().toString());
 
         mongoTemplate.save(existing, entity);
+        auditService.record("RECORD:" + entity, id, "RECORD_DELETED", beforeData, null);
     }
 
     private Map<String, Object> saveRecord(String entity, Object id, Map<String, Object> data) {

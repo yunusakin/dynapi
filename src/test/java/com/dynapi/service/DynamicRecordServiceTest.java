@@ -5,6 +5,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -45,6 +46,8 @@ class DynamicRecordServiceTest {
     private DynamicValidator dynamicValidator;
     @Mock
     private UniqueFieldConstraintService uniqueFieldConstraintService;
+    @Mock
+    private AuditService auditService;
 
     private DynamicRecordService dynamicRecordService;
 
@@ -55,7 +58,8 @@ class DynamicRecordServiceTest {
                         mongoTemplate,
                         schemaLifecycleService,
                         dynamicValidator,
-                        uniqueFieldConstraintService);
+                        uniqueFieldConstraintService,
+                        auditService);
     }
 
     @Test
@@ -95,6 +99,14 @@ class DynamicRecordServiceTest {
         assertEquals(objectId.toHexString(), result.id());
         assertEquals("Old", result.data().get("title"));
         assertEquals(31, ((Map<?, ?>) result.data().get("profile")).get("age"));
+
+        verify(auditService)
+                .record(
+                        eq("RECORD:tasks"),
+                        eq(objectId.toHexString()),
+                        eq("RECORD_PATCHED"),
+                        any(),
+                        any());
     }
 
     @Test
@@ -119,6 +131,14 @@ class DynamicRecordServiceTest {
         assertEquals(objectId.toHexString(), result.id());
         assertEquals("New", result.data().get("title"));
         assertEquals(5, result.data().get("priority"));
+
+        verify(auditService)
+                .record(
+                        eq("RECORD:tasks"),
+                        eq(objectId.toHexString()),
+                        eq("RECORD_REPLACED"),
+                        any(),
+                        any());
     }
 
     @Test
@@ -137,6 +157,14 @@ class DynamicRecordServiceTest {
         Map<String, Object> saved = savedCaptor.getValue();
         assertEquals(Boolean.TRUE, saved.get("deleted"));
         assertTrue(saved.get("deletedAt") instanceof String);
+
+        verify(auditService)
+                .record(
+                        eq("RECORD:tasks"),
+                        eq(objectId.toHexString()),
+                        eq("RECORD_DELETED"),
+                        any(),
+                        isNull());
     }
 
     @Test

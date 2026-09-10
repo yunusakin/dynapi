@@ -34,6 +34,7 @@ public class SchemaLifecycleService {
     private final FieldDefinitionRepository fieldDefinitionRepository;
     private final SchemaVersionRepository schemaVersionRepository;
     private final EventPublisher eventPublisher;
+    private final AuditService auditService;
 
     public SchemaVersion publish(String groupId) {
         FieldGroup group =
@@ -84,6 +85,12 @@ public class SchemaLifecycleService {
                         group.getName() == null ? "" : group.getName(),
                         "version",
                         String.valueOf(saved.getVersion())));
+        auditService.record(
+                "SCHEMA",
+                group.getEntity(),
+                "SCHEMA_PUBLISHED",
+                latestPublishedOpt.map(SchemaVersion::getFields).orElse(null),
+                saved.getFields());
         return saved;
     }
 
@@ -133,6 +140,12 @@ public class SchemaLifecycleService {
         SchemaVersion saved = schemaVersionRepository.save(published);
         publishSchemaEvent(
                 "SCHEMA_DEPRECATED", entity, saved, Map.of("version", String.valueOf(saved.getVersion())));
+        auditService.record(
+                "SCHEMA",
+                entity,
+                "SCHEMA_DEPRECATED",
+                Map.of("status", "PUBLISHED", "version", saved.getVersion()),
+                Map.of("status", "DEPRECATED", "version", saved.getVersion()));
         return saved;
     }
 
@@ -199,6 +212,12 @@ public class SchemaLifecycleService {
                 Map.of(
                         "fromVersion", String.valueOf(version),
                         "toVersion", String.valueOf(saved.getVersion())));
+        auditService.record(
+                "SCHEMA",
+                entity,
+                "SCHEMA_ROLLED_BACK",
+                currentPublishedOpt.map(SchemaVersion::getFields).orElse(null),
+                saved.getFields());
         return saved;
     }
 
