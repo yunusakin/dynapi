@@ -5,6 +5,7 @@ import com.dynapi.domain.model.FieldDefinition;
 import com.dynapi.domain.model.FieldGroup;
 import com.dynapi.domain.model.SchemaLifecycleStatus;
 import com.dynapi.domain.model.SchemaVersion;
+import com.dynapi.dto.PublishDryRunResult;
 import com.dynapi.infrastructure.messaging.EventPublisher;
 import com.dynapi.repository.FieldDefinitionRepository;
 import com.dynapi.repository.FieldGroupRepository;
@@ -84,6 +85,34 @@ public class SchemaLifecycleService {
                         "version",
                         String.valueOf(saved.getVersion())));
         return saved;
+    }
+
+    public PublishDryRunResult dryRunPublish(String groupId) {
+        FieldGroup group =
+                resolveGroup(groupId)
+                        .orElseThrow(() -> new IllegalArgumentException("Field group not found: " + groupId));
+        List<FieldDefinition> draftFields = loadDraftFields(group);
+
+        Optional<SchemaVersion> latestPublishedOpt =
+                schemaVersionRepository.findTopByEntityNameAndStatusOrderByVersionDesc(
+                        group.getEntity(), SchemaLifecycleStatus.PUBLISHED);
+
+        if (latestPublishedOpt.isEmpty()) {
+            return new PublishDryRunResult(
+                    group.getEntity(), group.getName(), null, 1, true, List.of(), List.of());
+        }
+
+        SchemaVersion previous = latestPublishedOpt.get();
+        CompatibilityDiff diff = computeDiff(previous, draftFields);
+
+        return new PublishDryRunResult(
+                group.getEntity(),
+                group.getName(),
+                previous.getVersion(),
+                previous.getVersion() + 1,
+                diff.blockingChanges().isEmpty(),
+                diff.blockingChanges(),
+                diff.nonBreakingChanges());
     }
 
     public SchemaVersion deprecate(String entity) {
@@ -224,13 +253,23 @@ public class SchemaLifecycleService {
 
     private void ensureCompatible(
             SchemaVersion previousPublished, List<FieldDefinition> candidateFields) {
+        CompatibilityDiff diff = computeDiff(previousPublished, candidateFields);
+        if (!diff.blockingChanges().isEmpty()) {
+            throw new IllegalArgumentException(diff.blockingChanges().get(0));
+        }
+    }
+
+    private CompatibilityDiff computeDiff(
+            SchemaVersion previousPublished, List<FieldDefinition> candidateFields) {
         Map<String, FieldDescriptor> previous = flattenDescriptors(previousPublished.getFields());
         Map<String, FieldDescriptor> candidate = flattenDescriptors(candidateFields);
 
+        List<String> blockingChanges = new ArrayList<>();
+        List<String> nonBreakingChanges = new ArrayList<>();
+
         for (String previousPath : previous.keySet()) {
             if (!candidate.containsKey(previousPath)) {
-                throw new IllegalArgumentException(
-                        "Breaking change: removed field path '" + previousPath + "'");
+                blockingChanges.add("Breaking change: removed field path '" + previousPath + "'");
             }
         }
 
@@ -241,41 +280,48 @@ public class SchemaLifecycleService {
 
             if (prev == null) {
                 if (next.required) {
-                    throw new IllegalArgumentException("Breaking change: new required field '" + path + "'");
+                    blockingChanges.add("Breaking change: new required field '" + path + "'");
+                } else {
+                    nonBreakingChanges.add("New optional field '" + path + "' added");
                 }
                 continue;
             }
 
             if (prev.type != next.type) {
-                throw new IllegalArgumentException(
-                        "Breaking change: type changed for field '" + path + "'");
+                blockingChanges.add("Breaking change: type changed for field '" + path + "'");
+                continue;
             }
 
             if (!prev.required && next.required) {
-                throw new IllegalArgumentException(
-                        "Breaking change: optional field became required '" + path + "'");
+                blockingChanges.add("Breaking change: optional field became required '" + path + "'");
             }
 
             if (isEnumNarrowed(prev.enumValues, next.enumValues)) {
-                throw new IllegalArgumentException(
-                        "Breaking change: enum narrowed for field '" + path + "'");
+                blockingChanges.add("Breaking change: enum narrowed for field '" + path + "'");
+            } else if (!Objects.equals(prev.enumValues, next.enumValues)) {
+                nonBreakingChanges.add("Enum changed non-breaking for field '" + path + "'");
             }
 
             if (isMinTightened(prev.min, next.min)) {
-                throw new IllegalArgumentException(
-                        "Breaking change: min tightened for field '" + path + "'");
+                blockingChanges.add("Breaking change: min tightened for field '" + path + "'");
+            } else if (!Objects.equals(prev.min, next.min)) {
+                nonBreakingChanges.add(
+                        "Min relaxed for field '" + path + "' (" + prev.min + " -> " + next.min + ")");
             }
 
             if (isMaxTightened(prev.max, next.max)) {
-                throw new IllegalArgumentException(
-                        "Breaking change: max tightened for field '" + path + "'");
+                blockingChanges.add("Breaking change: max tightened for field '" + path + "'");
+            } else if (!Objects.equals(prev.max, next.max)) {
+                nonBreakingChanges.add(
+                        "Max relaxed for field '" + path + "' (" + prev.max + " -> " + next.max + ")");
             }
 
             if (isRegexChanged(prev.regex, next.regex)) {
-                throw new IllegalArgumentException(
-                        "Breaking change: regex changed for field '" + path + "'");
+                blockingChanges.add("Breaking change: regex changed for field '" + path + "'");
             }
         }
+
+        return new CompatibilityDiff(blockingChanges, nonBreakingChanges);
     }
 
     private boolean isEnumNarrowed(List<Object> previous, List<Object> next) {
@@ -475,5 +521,8 @@ public class SchemaLifecycleService {
             Double min,
             Double max,
             String regex) {
+    }
+
+    private record CompatibilityDiff(List<String> blockingChanges, List<String> nonBreakingChanges) {
     }
 }

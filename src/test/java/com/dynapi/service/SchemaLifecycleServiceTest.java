@@ -217,6 +217,78 @@ class SchemaLifecycleServiceTest {
     }
 
     @Test
+    void dryRunPublish_reportsCompatibleWithNoPreviousSchema() {
+        FieldGroup group = group("task-form", "tasks", List.of("title"));
+        FieldDefinition title = field("title", FieldType.STRING, true);
+
+        when(fieldGroupRepository.findById("task-form")).thenReturn(Optional.of(group));
+        when(fieldDefinitionRepository.findByFieldNameIn(group.getFieldNames()))
+                .thenReturn(List.of(title));
+        when(schemaVersionRepository.findTopByEntityNameAndStatusOrderByVersionDesc(
+                "tasks", SchemaLifecycleStatus.PUBLISHED))
+                .thenReturn(Optional.empty());
+
+        var result = schemaLifecycleService.dryRunPublish("task-form");
+
+        assertTrue(result.compatible());
+        assertTrue(result.blockingChanges().isEmpty());
+        assertEquals(1, result.candidateVersion());
+        verify(schemaVersionRepository, times(0)).save(any(SchemaVersion.class));
+        verify(eventPublisher, times(0)).publishSchemaChange(any());
+    }
+
+    @Test
+    void dryRunPublish_reportsCompatibleChangeWithoutMutatingState() {
+        FieldGroup group = group("task-form", "tasks", List.of("title", "description"));
+        FieldDefinition title = field("title", FieldType.STRING, true);
+        FieldDefinition description = field("description", FieldType.STRING, false);
+        SchemaVersion previous = schemaVersion(1, List.of(field("title", FieldType.STRING, true)));
+
+        when(fieldGroupRepository.findById("task-form")).thenReturn(Optional.of(group));
+        when(fieldDefinitionRepository.findByFieldNameIn(group.getFieldNames()))
+                .thenReturn(List.of(title, description));
+        when(schemaVersionRepository.findTopByEntityNameAndStatusOrderByVersionDesc(
+                "tasks", SchemaLifecycleStatus.PUBLISHED))
+                .thenReturn(Optional.of(previous));
+
+        var result = schemaLifecycleService.dryRunPublish("task-form");
+
+        assertTrue(result.compatible());
+        assertTrue(result.blockingChanges().isEmpty());
+        assertEquals(1, result.nonBreakingChanges().size());
+        assertEquals(1, result.currentVersion());
+        assertEquals(2, result.candidateVersion());
+        verify(schemaVersionRepository, times(0)).save(any(SchemaVersion.class));
+        verify(eventPublisher, times(0)).publishSchemaChange(any());
+    }
+
+    @Test
+    void dryRunPublish_reportsBlockingChangeWithoutThrowing() {
+        FieldGroup group = group("task-form", "tasks", List.of("title"));
+        FieldDefinition candidate = field("title", FieldType.STRING, true);
+        SchemaVersion previous =
+                schemaVersion(
+                        1,
+                        List.of(
+                                field("title", FieldType.STRING, true),
+                                field("priority", FieldType.NUMBER, false)));
+
+        when(fieldGroupRepository.findById("task-form")).thenReturn(Optional.of(group));
+        when(fieldDefinitionRepository.findByFieldNameIn(group.getFieldNames()))
+                .thenReturn(List.of(candidate));
+        when(schemaVersionRepository.findTopByEntityNameAndStatusOrderByVersionDesc(
+                "tasks", SchemaLifecycleStatus.PUBLISHED))
+                .thenReturn(Optional.of(previous));
+
+        var result = schemaLifecycleService.dryRunPublish("task-form");
+
+        assertTrue(!result.compatible());
+        assertTrue(result.blockingChanges().stream().anyMatch(msg -> msg.contains("removed field path")));
+        verify(schemaVersionRepository, times(0)).save(any(SchemaVersion.class));
+        verify(eventPublisher, times(0)).publishSchemaChange(any());
+    }
+
+    @Test
     void deprecate_rejectsWhenNoPublishedSchemaExists() {
         when(schemaVersionRepository.findTopByEntityNameAndStatusOrderByVersionDesc(
                 "tasks", SchemaLifecycleStatus.PUBLISHED))

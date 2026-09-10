@@ -4,6 +4,7 @@ import com.dynapi.domain.model.FieldDefinition;
 import com.dynapi.domain.model.FieldGroup;
 import com.dynapi.domain.model.SchemaVersion;
 import com.dynapi.dto.ApiResponse;
+import com.dynapi.dto.PublishDryRunResult;
 import com.dynapi.dto.SchemaIndexSyncResult;
 import com.dynapi.repository.FieldDefinitionRepository;
 import com.dynapi.repository.FieldGroupRepository;
@@ -105,6 +106,12 @@ public class SchemaAdminController {
     public ApiResponse<SchemaVersion> publishFieldGroup(@PathVariable String groupId) {
         SchemaVersion published = schemaLifecycleService.publish(groupId);
         return ApiResponse.success(published, "Published");
+    }
+
+    @PostMapping("/field-groups/{groupId}/publish/dry-run")
+    public ApiResponse<PublishDryRunResult> dryRunPublishFieldGroup(@PathVariable String groupId) {
+        PublishDryRunResult result = schemaLifecycleService.dryRunPublish(groupId);
+        return ApiResponse.success(result, "Dry-run complete");
     }
 
     @PostMapping("/entities/{entity}/deprecate")
