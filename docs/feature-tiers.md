@@ -1,6 +1,6 @@
 # Dynapi Feature Tiers
 
-This file maps the current backlog in `sdd/memory-bank/core/backlog.md` to product tiers.
+This file maps the current backlog in `spectra/sdd/memory-bank/core/backlog.md` to product tiers.
 
 ## Tier Definition
 - `demo`: Public/open-source core platform capabilities.

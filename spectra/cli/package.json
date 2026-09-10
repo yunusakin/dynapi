@@ -1,0 +1,58 @@
+{
+  "name": "spectra-pack",
+  "version": "3.0.5",
+  "description": "CLI operating system for AI-assisted product development",
+  "license": "MIT",
+  "author": "Yunus Akin",
+  "type": "module",
+  "bin": {
+    "spectra": "bin/spectra.js"
+  },
+  "scripts": {
+    "build:native": "node ./scripts/check-versions.mjs && node ./scripts/build-native.mjs",
+    "prepack": "node ./scripts/check-versions.mjs && node ./scripts/sync-assets.mjs",
+    "pretest": "node ./scripts/sync-assets.mjs",
+    "test": "node --test test/*.test.js"
+  },
+  "files": [
+    "bin",
+    "src",
+    "assets",
+    "README.md",
+    "LICENSE"
+  ],
+  "keywords": [
+    "ai",
+    "cli",
+    "developer-tools",
+    "evals",
+    "governance",
+    "product-development",
+    "release-confidence",
+    "spectra",
+    "spec-driven",
+    "telemetry",
+    "verification"
+  ],
+  "homepage": "https://github.com/yunusakin/spectra#readme",
+  "bugs": {
+    "url": "https://github.com/yunusakin/spectra/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/yunusakin/spectra.git"
+  },
+  "dependencies": {
+    "yaml": "^2.8.2"
+  },
+  "devDependencies": {
+    "esbuild": "^0.25.11",
+    "postject": "^1.0.0-alpha.6"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
+}

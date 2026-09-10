@@ -1,0 +1,16 @@
+#!/usr/bin/env sh
+set -eu
+SCRIPT_DIR=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
+RECORDED_BINARY=''
+if [ -n "$RECORDED_BINARY" ] && [ -x "$RECORDED_BINARY" ]; then
+  exec "$RECORDED_BINARY" "$@"
+fi
+if command -v node >/dev/null 2>&1 && [ -f "$SCRIPT_DIR/../cli/bin/spectra.js" ]; then
+  exec node "$SCRIPT_DIR/../cli/bin/spectra.js" "$@"
+fi
+FOUND_SPECTRA=$(command -v spectra 2>/dev/null || true)
+if [ -n "$FOUND_SPECTRA" ] && [ "$FOUND_SPECTRA" != "$SCRIPT_DIR/spectra" ]; then
+  exec "$FOUND_SPECTRA" "$@"
+fi
+echo "Spectra launcher could not find a native binary, local Node CLI, or spectra on PATH." >&2
+exit 127

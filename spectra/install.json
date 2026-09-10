@@ -1,0 +1,11 @@
+{
+  "profile": "full",
+  "cliVersion": "3.0.5",
+  "runtimeVersion": "3.0.5",
+  "schemaVersion": 1,
+  "gitMode": "shared",
+  "installMode": "adopt",
+  "installedAt": "2026-08-30T20:32:40.945Z",
+  "binaryPath": null,
+  "localLauncher": "spectra/bin/spectra"
+}
