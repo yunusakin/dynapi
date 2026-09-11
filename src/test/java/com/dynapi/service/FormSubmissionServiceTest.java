@@ -44,6 +44,8 @@ class FormSubmissionServiceTest {
     private SchemaLifecycleService schemaLifecycleService;
     @Mock
     private UniqueFieldConstraintService uniqueFieldConstraintService;
+    @Mock
+    private AuditService auditService;
 
     private FormSubmissionService formSubmissionService;
 
@@ -56,7 +58,8 @@ class FormSubmissionServiceTest {
                         messageSource,
                         dynamicValidator,
                         schemaLifecycleService,
-                        uniqueFieldConstraintService);
+                        uniqueFieldConstraintService,
+                        auditService);
     }
 
     @Test
@@ -99,12 +102,15 @@ class FormSubmissionServiceTest {
 
         when(fieldGroupRepository.findById("task-form")).thenReturn(Optional.of(group));
         when(schemaLifecycleService.latestPublished("tasks")).thenReturn(published);
+        when(mongoTemplate.save(payload, "tasks")).thenReturn(payload);
 
         formSubmissionService.submitForm(request, Locale.US);
 
         verify(dynamicValidator).validate(eq(payload), eq(List.of(title)), any(Locale.class));
         verify(uniqueFieldConstraintService).validateForCreate("tasks", payload, List.of(title));
         verify(mongoTemplate).save(payload, "tasks");
+        verify(auditService)
+                .record(eq("RECORD"), eq("tasks"), any(), eq("RECORD_CREATED"), any(), eq(payload));
     }
 
     @Test
@@ -132,6 +138,7 @@ class FormSubmissionServiceTest {
         when(fieldGroupRepository.findTopByNameOrderByVersionDesc("task-form"))
                 .thenReturn(Optional.of(group));
         when(schemaLifecycleService.latestPublished("tasks")).thenReturn(published);
+        when(mongoTemplate.save(payload, "tasks")).thenReturn(payload);
 
         formSubmissionService.submitForm(request, Locale.US);
 

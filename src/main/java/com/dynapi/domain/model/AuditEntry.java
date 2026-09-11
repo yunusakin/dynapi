@@ -12,6 +12,7 @@ public class AuditEntry {
     @Id
     private String id;
     private String entityType;
+    private String entityName;
     private String entityId;
     private String action;
     private String actor;

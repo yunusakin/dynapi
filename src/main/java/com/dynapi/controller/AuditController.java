@@ -20,12 +20,13 @@ public class AuditController {
     @GetMapping
     public ApiResponse<PaginatedResponse<AuditEntry>> queryAuditLog(
             @RequestParam(required = false) String entityType,
+            @RequestParam(required = false) String entityName,
             @RequestParam(required = false) String entityId,
             @RequestParam(required = false) String action,
             @RequestParam(required = false) Integer page,
             @RequestParam(required = false) Integer size) {
         PaginatedResponse<AuditEntry> result =
-                auditService.query(entityType, entityId, action, page, size);
+                auditService.query(entityType, entityName, entityId, action, page, size);
         return ApiResponse.success(result, "Fetched");
     }
 }

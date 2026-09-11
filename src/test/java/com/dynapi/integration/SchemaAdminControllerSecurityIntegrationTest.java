@@ -9,15 +9,18 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.dynapi.DynapiApplication;
+import com.dynapi.controller.AuditController;
 import com.dynapi.controller.SchemaAdminController;
 import com.dynapi.domain.model.FieldDefinition;
 import com.dynapi.domain.model.FieldGroup;
 import com.dynapi.domain.model.SchemaLifecycleStatus;
 import com.dynapi.domain.model.SchemaVersion;
+import com.dynapi.dto.PaginatedResponse;
 import com.dynapi.dto.SchemaIndexSyncResult;
 import com.dynapi.exception.GlobalExceptionHandler;
 import com.dynapi.repository.FieldDefinitionRepository;
 import com.dynapi.repository.FieldGroupRepository;
+import com.dynapi.service.AuditService;
 import com.dynapi.service.SchemaIndexService;
 import com.dynapi.service.SchemaLifecycleService;
 import io.jsonwebtoken.Jwts;
@@ -54,7 +57,8 @@ import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilde
         webEnvironment = SpringBootTest.WebEnvironment.MOCK,
         classes = {
                 DynapiApplication.class,
-                SchemaAdminControllerSecurityIntegrationTest.SchemaAdminControllerTestConfig.class
+                SchemaAdminControllerSecurityIntegrationTest.SchemaAdminControllerTestConfig.class,
+                SchemaAdminControllerSecurityIntegrationTest.AuditControllerTestConfig.class
         })
 @AutoConfigureMockMvc
 @ActiveProfiles("test")
@@ -73,6 +77,9 @@ class SchemaAdminControllerSecurityIntegrationTest {
     private SchemaLifecycleService schemaLifecycleService;
     @MockitoBean
     private SchemaIndexService schemaIndexService;
+
+    @MockitoBean
+    private AuditService auditService;
 
     @Value("${security.jwt.secret}")
     private String jwtSecret;
@@ -110,6 +117,8 @@ class SchemaAdminControllerSecurityIntegrationTest {
         when(schemaIndexService.syncIndexes(anyString()))
                 .thenReturn(
                         new SchemaIndexSyncResult("users", 1, 2, 2, List.of("email"), List.of("priority")));
+        when(auditService.query(any(), any(), any(), any(), any(), any()))
+                .thenReturn(new PaginatedResponse<>(0, 20, 0L, List.of(), "timestamp", "DESC"));
     }
 
     @ParameterizedTest
@@ -204,7 +213,8 @@ class SchemaAdminControllerSecurityIntegrationTest {
                 Arguments.of("POST", "/api/admin/schema/entities/users/deprecate", null),
                 Arguments.of("POST", "/api/admin/schema/entities/users/rollback/1", null),
                 Arguments.of("GET", "/api/admin/schema/entities/users/versions", null),
-                Arguments.of("POST", "/api/admin/schema/entities/users/indexes/sync", null));
+                Arguments.of("POST", "/api/admin/schema/entities/users/indexes/sync", null),
+                Arguments.of("GET", "/api/admin/audit", null));
     }
 
     private static SchemaVersion schemaVersion(
@@ -235,6 +245,14 @@ class SchemaAdminControllerSecurityIntegrationTest {
         @Bean
         GlobalExceptionHandler globalExceptionHandler(MessageSource messageSource) {
             return new GlobalExceptionHandler(messageSource);
+        }
+    }
+
+    @TestConfiguration
+    static class AuditControllerTestConfig {
+        @Bean
+        AuditController auditController(AuditService auditService) {
+            return new AuditController(auditService);
         }
     }
 }

@@ -10,6 +10,7 @@ import com.dynapi.infrastructure.messaging.EventPublisher;
 import com.dynapi.repository.FieldDefinitionRepository;
 import com.dynapi.repository.FieldGroupRepository;
 import com.dynapi.repository.SchemaVersionRepository;
+import com.dynapi.security.CurrentActorResolver;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -23,8 +24,6 @@ import java.util.Optional;
 import java.util.stream.Collectors;
 
 import lombok.RequiredArgsConstructor;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 
 @Service
@@ -35,6 +34,7 @@ public class SchemaLifecycleService {
     private final SchemaVersionRepository schemaVersionRepository;
     private final EventPublisher eventPublisher;
     private final AuditService auditService;
+    private final CurrentActorResolver currentActorResolver;
 
     public SchemaVersion publish(String groupId) {
         FieldGroup group =
@@ -88,6 +88,7 @@ public class SchemaLifecycleService {
         auditService.record(
                 "SCHEMA",
                 group.getEntity(),
+                null,
                 "SCHEMA_PUBLISHED",
                 latestPublishedOpt.map(SchemaVersion::getFields).orElse(null),
                 saved.getFields());
@@ -143,6 +144,7 @@ public class SchemaLifecycleService {
         auditService.record(
                 "SCHEMA",
                 entity,
+                null,
                 "SCHEMA_DEPRECATED",
                 Map.of("status", "PUBLISHED", "version", saved.getVersion()),
                 Map.of("status", "DEPRECATED", "version", saved.getVersion()));
@@ -215,6 +217,7 @@ public class SchemaLifecycleService {
         auditService.record(
                 "SCHEMA",
                 entity,
+                null,
                 "SCHEMA_ROLLED_BACK",
                 currentPublishedOpt.map(SchemaVersion::getFields).orElse(null),
                 saved.getFields());
@@ -524,13 +527,7 @@ public class SchemaLifecycleService {
     }
 
     private String currentActor() {
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        if (authentication == null
-                || authentication.getName() == null
-                || authentication.getName().isBlank()) {
-            return "system";
-        }
-        return authentication.getName();
+        return currentActorResolver.resolve();
     }
 
     private record FieldDescriptor(

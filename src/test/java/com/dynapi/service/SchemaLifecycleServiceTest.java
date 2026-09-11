@@ -5,6 +5,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -44,6 +45,8 @@ class SchemaLifecycleServiceTest {
     private EventPublisher eventPublisher;
     @Mock
     private AuditService auditService;
+    @Mock
+    private com.dynapi.security.CurrentActorResolver currentActorResolver;
 
     private SchemaLifecycleService schemaLifecycleService;
 
@@ -55,7 +58,8 @@ class SchemaLifecycleServiceTest {
                         fieldDefinitionRepository,
                         schemaVersionRepository,
                         eventPublisher,
-                        auditService);
+                        auditService,
+                        currentActorResolver);
 
         lenient()
                 .when(schemaVersionRepository.save(any(SchemaVersion.class)))
@@ -132,7 +136,8 @@ class SchemaLifecycleServiceTest {
         assertEquals(SchemaLifecycleStatus.DEPRECATED, saved.get(0).getStatus());
         assertEquals(SchemaLifecycleStatus.PUBLISHED, saved.get(1).getStatus());
 
-        verify(auditService).record(eq("SCHEMA"), eq("tasks"), eq("SCHEMA_PUBLISHED"), any(), any());
+        verify(auditService)
+                .record(eq("SCHEMA"), eq("tasks"), isNull(), eq("SCHEMA_PUBLISHED"), any(), any());
     }
 
     @Test
@@ -318,7 +323,8 @@ class SchemaLifecycleServiceTest {
 
         assertEquals(SchemaLifecycleStatus.DEPRECATED, deprecated.getStatus());
         verify(eventPublisher).publishSchemaChange(any());
-        verify(auditService).record(eq("SCHEMA"), eq("tasks"), eq("SCHEMA_DEPRECATED"), any(), any());
+        verify(auditService)
+                .record(eq("SCHEMA"), eq("tasks"), isNull(), eq("SCHEMA_DEPRECATED"), any(), any());
     }
 
     @Test
@@ -355,7 +361,8 @@ class SchemaLifecycleServiceTest {
         ArgumentCaptor<DomainEvent<?>> eventCaptor = ArgumentCaptor.forClass(DomainEvent.class);
         verify(eventPublisher).publishSchemaChange(eventCaptor.capture());
         assertEquals("SCHEMA_ROLLED_BACK", eventCaptor.getValue().getEventType());
-        verify(auditService).record(eq("SCHEMA"), eq("tasks"), eq("SCHEMA_ROLLED_BACK"), any(), any());
+        verify(auditService)
+                .record(eq("SCHEMA"), eq("tasks"), isNull(), eq("SCHEMA_ROLLED_BACK"), any(), any());
     }
 
     @Test

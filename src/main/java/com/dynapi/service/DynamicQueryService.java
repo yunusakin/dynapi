@@ -1,5 +1,6 @@
 package com.dynapi.service;
 
+import com.dynapi.config.PageRequestGuard;
 import com.dynapi.config.QueryGuardrailProperties;
 import com.dynapi.domain.model.FieldDefinition;
 import com.dynapi.domain.model.FieldType;
@@ -90,27 +91,11 @@ public class DynamicQueryService {
     }
 
     private int resolvePage(Integer page) {
-        if (page == null) {
-            return DEFAULT_PAGE;
-        }
-        if (page < 0) {
-            throw new IllegalArgumentException("Page must be >= 0");
-        }
-        return page;
+        return PageRequestGuard.resolvePage(page, DEFAULT_PAGE);
     }
 
     private int resolveSize(Integer size) {
-        if (size == null) {
-            return DEFAULT_SIZE;
-        }
-        if (size <= 0) {
-            throw new IllegalArgumentException("Size must be > 0");
-        }
-        if (size > guardrailProperties.getMaxPageSize()) {
-            throw new IllegalArgumentException(
-                    "Size exceeds max page size: " + guardrailProperties.getMaxPageSize());
-        }
-        return size;
+        return PageRequestGuard.resolveSize(size, DEFAULT_SIZE, guardrailProperties);
     }
 
     private Sort.Direction resolveSortDirection(String sortDirection) {

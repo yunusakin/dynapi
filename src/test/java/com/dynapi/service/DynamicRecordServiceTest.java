@@ -102,7 +102,8 @@ class DynamicRecordServiceTest {
 
         verify(auditService)
                 .record(
-                        eq("RECORD:tasks"),
+                        eq("RECORD"),
+                        eq("tasks"),
                         eq(objectId.toHexString()),
                         eq("RECORD_PATCHED"),
                         any(),
@@ -134,7 +135,8 @@ class DynamicRecordServiceTest {
 
         verify(auditService)
                 .record(
-                        eq("RECORD:tasks"),
+                        eq("RECORD"),
+                        eq("tasks"),
                         eq(objectId.toHexString()),
                         eq("RECORD_REPLACED"),
                         any(),
@@ -160,7 +162,8 @@ class DynamicRecordServiceTest {
 
         verify(auditService)
                 .record(
-                        eq("RECORD:tasks"),
+                        eq("RECORD"),
+                        eq("tasks"),
                         eq(objectId.toHexString()),
                         eq("RECORD_DELETED"),
                         any(),

@@ -1,15 +1,18 @@
 package com.dynapi.service;
 
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.dynapi.config.QueryGuardrailProperties;
 import com.dynapi.domain.model.AuditEntry;
 import com.dynapi.dto.PaginatedResponse;
+import com.dynapi.security.CurrentActorResolver;
 
 import java.util.List;
 import java.util.Map;
@@ -28,6 +31,8 @@ class AuditServiceTest {
 
     @Mock
     private MongoTemplate mongoTemplate;
+    @Mock
+    private CurrentActorResolver currentActorResolver;
 
     private AuditService auditService;
 
@@ -35,41 +40,56 @@ class AuditServiceTest {
     void setUp() {
         QueryGuardrailProperties guardrails = new QueryGuardrailProperties();
         guardrails.setMaxPageSize(100);
-        auditService = new AuditService(mongoTemplate, guardrails);
+        auditService = new AuditService(mongoTemplate, guardrails, currentActorResolver);
     }
 
     @Test
     void record_savesEntryWithActorAndTimestamp() {
+        when(currentActorResolver.resolve()).thenReturn("alice");
         Map<String, Object> before = Map.of("title", "Old");
         Map<String, Object> after = Map.of("title", "New");
 
-        auditService.record("RECORD:tasks", "abc123", "RECORD_PATCHED", before, after);
+        auditService.record("RECORD", "tasks", "abc123", "RECORD_PATCHED", before, after);
 
         ArgumentCaptor<AuditEntry> captor = ArgumentCaptor.forClass(AuditEntry.class);
         verify(mongoTemplate).save(captor.capture());
         AuditEntry saved = captor.getValue();
 
-        assertEquals("RECORD:tasks", saved.getEntityType());
+        assertEquals("RECORD", saved.getEntityType());
+        assertEquals("tasks", saved.getEntityName());
         assertEquals("abc123", saved.getEntityId());
         assertEquals("RECORD_PATCHED", saved.getAction());
-        assertEquals("system", saved.getActor());
+        assertEquals("alice", saved.getActor());
         assertEquals(before, saved.getBefore());
         assertEquals(after, saved.getAfter());
         org.junit.jupiter.api.Assertions.assertNotNull(saved.getTimestamp());
     }
 
     @Test
+    void record_swallowsWriteFailureInsteadOfPropagating() {
+        when(currentActorResolver.resolve()).thenReturn("alice");
+        doThrow(new org.springframework.dao.DataAccessResourceFailureException("mongo down"))
+                .when(mongoTemplate)
+                .save(any(AuditEntry.class));
+
+        assertDoesNotThrow(
+                () ->
+                        auditService.record(
+                                "RECORD", "tasks", "abc123", "RECORD_PATCHED", Map.of(), Map.of()));
+    }
+
+    @Test
     void query_appliesFiltersAndReturnsPaginatedResult() {
         AuditEntry entry = new AuditEntry();
         entry.setEntityType("SCHEMA");
-        entry.setEntityId("tasks");
+        entry.setEntityName("tasks");
         entry.setAction("SCHEMA_PUBLISHED");
 
         when(mongoTemplate.count(any(Query.class), eq(AuditEntry.class))).thenReturn(1L);
         when(mongoTemplate.find(any(Query.class), eq(AuditEntry.class))).thenReturn(List.of(entry));
 
         PaginatedResponse<AuditEntry> result =
-                auditService.query("SCHEMA", "tasks", "SCHEMA_PUBLISHED", 0, 10);
+                auditService.query("SCHEMA", "tasks", null, "SCHEMA_PUBLISHED", 0, 10);
 
         assertEquals(0, result.page());
         assertEquals(10, result.size());
@@ -79,14 +99,36 @@ class AuditServiceTest {
     }
 
     @Test
+    void query_withOnlyEntityTypeReturnsEntriesAcrossAllEntityNames() {
+        AuditEntry recordOne = new AuditEntry();
+        recordOne.setEntityType("RECORD");
+        recordOne.setEntityName("tasks");
+
+        AuditEntry recordTwo = new AuditEntry();
+        recordTwo.setEntityType("RECORD");
+        recordTwo.setEntityName("orders");
+
+        when(mongoTemplate.count(any(Query.class), eq(AuditEntry.class))).thenReturn(2L);
+        when(mongoTemplate.find(any(Query.class), eq(AuditEntry.class)))
+                .thenReturn(List.of(recordOne, recordTwo));
+
+        PaginatedResponse<AuditEntry> result = auditService.query("RECORD", null, null, null, 0, 10);
+
+        assertEquals(2L, result.totalElements());
+        assertEquals(2, result.content().size());
+    }
+
+    @Test
     void query_rejectsSizeAboveGuardrail() {
         assertThrows(
-                IllegalArgumentException.class, () -> auditService.query(null, null, null, 0, 500));
+                IllegalArgumentException.class,
+                () -> auditService.query(null, null, null, null, 0, 500));
     }
 
     @Test
     void query_rejectsNegativePage() {
         assertThrows(
-                IllegalArgumentException.class, () -> auditService.query(null, null, null, -1, 10));
+                IllegalArgumentException.class,
+                () -> auditService.query(null, null, null, null, -1, 10));
     }
 }

@@ -45,7 +45,7 @@ public class DynamicRecordService {
         uniqueFieldConstraintService.validateForUpdate(entity, existing.get("_id"), merged, schema);
 
         Map<String, Object> saved = saveRecord(entity, existing.get("_id"), merged);
-        auditService.record("RECORD:" + entity, id, "RECORD_PATCHED", beforeData, extractData(saved));
+        auditService.record("RECORD", entity, id, "RECORD_PATCHED", beforeData, extractData(saved));
         return toRecordDto(saved);
     }
 
@@ -60,7 +60,7 @@ public class DynamicRecordService {
                 entity, existing.get("_id"), replacement, schema);
 
         Map<String, Object> saved = saveRecord(entity, existing.get("_id"), replacement);
-        auditService.record("RECORD:" + entity, id, "RECORD_REPLACED", beforeData, extractData(saved));
+        auditService.record("RECORD", entity, id, "RECORD_REPLACED", beforeData, extractData(saved));
         return toRecordDto(saved);
     }
 
@@ -71,7 +71,7 @@ public class DynamicRecordService {
         existing.put("deletedAt", LocalDateTime.now().toString());
 
         mongoTemplate.save(existing, entity);
-        auditService.record("RECORD:" + entity, id, "RECORD_DELETED", beforeData, null);
+        auditService.record("RECORD", entity, id, "RECORD_DELETED", beforeData, null);
     }
 
     private Map<String, Object> saveRecord(String entity, Object id, Map<String, Object> data) {
