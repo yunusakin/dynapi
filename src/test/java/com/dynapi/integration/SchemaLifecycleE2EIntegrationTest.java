@@ -15,6 +15,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import com.dynapi.domain.event.DomainEvent;
 import com.dynapi.infrastructure.messaging.EventPublisher;
+import com.dynapi.service.AuditService;
 
 import java.util.List;
 
@@ -27,6 +28,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.test.context.ActiveProfiles;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
 import org.springframework.test.util.JsonPathExpectationsHelper;
 import org.springframework.test.web.servlet.MockMvc;
@@ -44,6 +46,13 @@ class SchemaLifecycleE2EIntegrationTest {
 
     @MockitoSpyBean
     private EventPublisher eventPublisher;
+
+    // Replaces the real, @Async-proxied AuditService bean: this test's per-@Test full-database
+    // drop() would otherwise race with any audit write from the previous test still in flight on
+    // the async executor. This suite exercises schema lifecycle behavior, not the audit trail
+    // itself (see AuditServiceTest/SchemaAdminControllerSecurityIntegrationTest for that).
+    @MockitoBean
+    private AuditService auditService;
 
     @BeforeEach
     void resetState() {

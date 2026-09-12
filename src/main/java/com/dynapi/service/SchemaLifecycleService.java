@@ -1,6 +1,7 @@
 package com.dynapi.service;
 
 import com.dynapi.domain.event.DomainEvent;
+import com.dynapi.domain.model.AuditEntityType;
 import com.dynapi.domain.model.FieldDefinition;
 import com.dynapi.domain.model.FieldGroup;
 import com.dynapi.domain.model.SchemaLifecycleStatus;
@@ -10,6 +11,7 @@ import com.dynapi.infrastructure.messaging.EventPublisher;
 import com.dynapi.repository.FieldDefinitionRepository;
 import com.dynapi.repository.FieldGroupRepository;
 import com.dynapi.repository.SchemaVersionRepository;
+import com.dynapi.security.CurrentActorResolver;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -23,8 +25,6 @@ import java.util.Optional;
 import java.util.stream.Collectors;
 
 import lombok.RequiredArgsConstructor;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 
 @Service
@@ -34,6 +34,8 @@ public class SchemaLifecycleService {
     private final FieldDefinitionRepository fieldDefinitionRepository;
     private final SchemaVersionRepository schemaVersionRepository;
     private final EventPublisher eventPublisher;
+    private final AuditService auditService;
+    private final CurrentActorResolver currentActorResolver;
 
     public SchemaVersion publish(String groupId) {
         FieldGroup group =
@@ -84,6 +86,7 @@ public class SchemaLifecycleService {
                         group.getName() == null ? "" : group.getName(),
                         "version",
                         String.valueOf(saved.getVersion())));
+        recordSchemaAudit("SCHEMA_PUBLISHED", group.getEntity(), latestPublishedOpt, saved);
         return saved;
     }
 
@@ -133,6 +136,13 @@ public class SchemaLifecycleService {
         SchemaVersion saved = schemaVersionRepository.save(published);
         publishSchemaEvent(
                 "SCHEMA_DEPRECATED", entity, saved, Map.of("version", String.valueOf(saved.getVersion())));
+        auditService.record(
+                AuditEntityType.SCHEMA,
+                entity,
+                null,
+                "SCHEMA_DEPRECATED",
+                statusSnapshot("PUBLISHED", saved.getVersion()),
+                statusSnapshot("DEPRECATED", saved.getVersion()));
         return saved;
     }
 
@@ -199,6 +209,7 @@ public class SchemaLifecycleService {
                 Map.of(
                         "fromVersion", String.valueOf(version),
                         "toVersion", String.valueOf(saved.getVersion())));
+        recordSchemaAudit("SCHEMA_ROLLED_BACK", entity, currentPublishedOpt, saved);
         return saved;
     }
 
@@ -505,13 +516,25 @@ public class SchemaLifecycleService {
     }
 
     private String currentActor() {
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        if (authentication == null
-                || authentication.getName() == null
-                || authentication.getName().isBlank()) {
-            return "system";
-        }
-        return authentication.getName();
+        return currentActorResolver.resolve();
+    }
+
+    private void recordSchemaAudit(
+            String action, String entity, Optional<SchemaVersion> previousOpt, SchemaVersion saved) {
+        auditService.record(
+                AuditEntityType.SCHEMA,
+                entity,
+                null,
+                action,
+                previousOpt.map(SchemaVersion::getFields).orElse(null),
+                saved.getFields());
+    }
+
+    private Map<String, Object> statusSnapshot(String status, Integer version) {
+        Map<String, Object> snapshot = new LinkedHashMap<>();
+        snapshot.put("status", status);
+        snapshot.put("version", version);
+        return snapshot;
     }
 
     private record FieldDescriptor(

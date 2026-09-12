@@ -1,11 +1,14 @@
 package com.dynapi.service;
 
 import com.dynapi.domain.exception.EntityNotFoundException;
+import com.dynapi.domain.model.AuditEntityType;
 import com.dynapi.domain.model.FieldDefinition;
 import com.dynapi.domain.model.SchemaVersion;
 import com.dynapi.domain.validation.DynamicValidator;
+import com.dynapi.domain.validation.ReservedFieldGuard;
 import com.dynapi.dto.FormRecordDto;
 import com.dynapi.dto.RecordMutationRequest;
+import com.dynapi.infrastructure.persistence.MongoDocumentIds;
 
 import java.time.LocalDateTime;
 import java.util.Collection;
@@ -13,7 +16,6 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
-import java.util.Set;
 
 import lombok.RequiredArgsConstructor;
 import org.bson.types.ObjectId;
@@ -25,29 +27,30 @@ import org.springframework.stereotype.Service;
 @Service
 @RequiredArgsConstructor
 public class DynamicRecordService {
-    private static final Set<String> RESERVED_FIELDS =
-            Set.of("_id", "_class", "deleted", "deletedAt", "deletedBy");
-
     private final MongoTemplate mongoTemplate;
     private final SchemaLifecycleService schemaLifecycleService;
     private final DynamicValidator dynamicValidator;
     private final UniqueFieldConstraintService uniqueFieldConstraintService;
+    private final AuditService auditService;
 
     public FormRecordDto patch(String entity, String id, RecordMutationRequest request, Locale locale) {
         Map<String, Object> existing = loadActiveRecord(entity, id);
+        Map<String, Object> beforeData = extractData(existing);
         Map<String, Object> patchData = sanitizeInput(request.data());
-        Map<String, Object> merged = deepMerge(extractData(existing), patchData);
+        Map<String, Object> merged = deepMerge(beforeData, patchData);
         List<FieldDefinition> schema = loadPublishedSchema(entity);
 
         dynamicValidator.validate(merged, schema, locale);
         uniqueFieldConstraintService.validateForUpdate(entity, existing.get("_id"), merged, schema);
 
         Map<String, Object> saved = saveRecord(entity, existing.get("_id"), merged);
+        recordAudit("RECORD_PATCHED", entity, id, beforeData, extractData(saved));
         return toRecordDto(saved);
     }
 
     public FormRecordDto replace(String entity, String id, RecordMutationRequest request, Locale locale) {
         Map<String, Object> existing = loadActiveRecord(entity, id);
+        Map<String, Object> beforeData = extractData(existing);
         Map<String, Object> replacement = sanitizeInput(request.data());
         List<FieldDefinition> schema = loadPublishedSchema(entity);
 
@@ -56,15 +59,23 @@ public class DynamicRecordService {
                 entity, existing.get("_id"), replacement, schema);
 
         Map<String, Object> saved = saveRecord(entity, existing.get("_id"), replacement);
+        recordAudit("RECORD_REPLACED", entity, id, beforeData, extractData(saved));
         return toRecordDto(saved);
     }
 
     public void softDelete(String entity, String id) {
         Map<String, Object> existing = loadActiveRecord(entity, id);
+        Map<String, Object> beforeData = extractData(existing);
         existing.put("deleted", true);
         existing.put("deletedAt", LocalDateTime.now().toString());
 
         mongoTemplate.save(existing, entity);
+        recordAudit("RECORD_DELETED", entity, id, beforeData, null);
+    }
+
+    private void recordAudit(
+            String action, String entity, String id, Map<String, Object> before, Map<String, Object> after) {
+        auditService.record(AuditEntityType.RECORD, entity, id, action, before, after);
     }
 
     private Map<String, Object> saveRecord(String entity, Object id, Map<String, Object> data) {
@@ -111,20 +122,11 @@ public class DynamicRecordService {
     }
 
     private Map<String, Object> sanitizeInput(Map<String, Object> data) {
-        if (data == null) {
-            throw new IllegalArgumentException("Record data must not be null");
-        }
+        ReservedFieldGuard.reject(data);
 
         Map<String, Object> sanitized = new LinkedHashMap<>();
         for (Map.Entry<String, Object> entry : data.entrySet()) {
-            String key = entry.getKey();
-            if (key == null || key.isBlank()) {
-                throw new IllegalArgumentException("Record field name must not be blank");
-            }
-            if (RESERVED_FIELDS.contains(key)) {
-                throw new IllegalArgumentException("Reserved field is not allowed in payload: " + key);
-            }
-            sanitized.put(key, sanitizeValue(entry.getValue()));
+            sanitized.put(entry.getKey(), sanitizeValue(entry.getValue()));
         }
         return sanitized;
     }
@@ -187,7 +189,7 @@ public class DynamicRecordService {
     }
 
     private FormRecordDto toRecordDto(Map<String, Object> document) {
-        String id = document.get("_id") == null ? null : document.get("_id").toString();
+        String id = MongoDocumentIds.stringify(document);
         Map<String, Object> data = extractData(document);
         return new FormRecordDto(id, data);
     }

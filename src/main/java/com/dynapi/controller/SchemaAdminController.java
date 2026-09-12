@@ -1,5 +1,6 @@
 package com.dynapi.controller;
 
+import com.dynapi.domain.model.AuditEntityType;
 import com.dynapi.domain.model.FieldDefinition;
 import com.dynapi.domain.model.FieldGroup;
 import com.dynapi.domain.model.SchemaVersion;
@@ -8,6 +9,7 @@ import com.dynapi.dto.PublishDryRunResult;
 import com.dynapi.dto.SchemaIndexSyncResult;
 import com.dynapi.repository.FieldDefinitionRepository;
 import com.dynapi.repository.FieldGroupRepository;
+import com.dynapi.service.AuditService;
 import com.dynapi.service.SchemaIndexService;
 import com.dynapi.service.SchemaLifecycleService;
 
@@ -33,11 +35,14 @@ public class SchemaAdminController {
     private final FieldGroupRepository fieldGroupRepository;
     private final SchemaLifecycleService schemaLifecycleService;
     private final SchemaIndexService schemaIndexService;
+    private final AuditService auditService;
 
     // FieldDefinition CRUD
     @PostMapping("/field-definitions")
     public ApiResponse<FieldDefinition> createFieldDefinition(@RequestBody FieldDefinition def) {
-        return ApiResponse.success(fieldDefinitionRepository.save(def), "Created");
+        FieldDefinition saved = fieldDefinitionRepository.save(def);
+        recordAudit(AuditEntityType.FIELD_DEFINITION, saved.getFieldName(), "FIELD_DEFINITION_CREATED", null, saved);
+        return ApiResponse.success(saved, "Created");
     }
 
     @PutMapping("/field-definitions/{id}")
@@ -51,15 +56,19 @@ public class SchemaAdminController {
                 def.getVersion() == null
                         ? ((current.getVersion() == null ? 0 : current.getVersion()) + 1)
                         : def.getVersion());
-        return ApiResponse.success(fieldDefinitionRepository.save(def), "Updated");
+        FieldDefinition saved = fieldDefinitionRepository.save(def);
+        recordAudit(AuditEntityType.FIELD_DEFINITION, id, "FIELD_DEFINITION_UPDATED", current, saved);
+        return ApiResponse.success(saved, "Updated");
     }
 
     @DeleteMapping("/field-definitions/{id}")
     public ApiResponse<Void> deleteFieldDefinition(@PathVariable String id) {
+        Optional<FieldDefinition> current = findFieldDefinitionByName(id);
         long deleted = fieldDefinitionRepository.deleteByFieldName(id);
         if (deleted == 0) {
             throw new IllegalArgumentException("Field definition not found: " + id);
         }
+        recordAudit(AuditEntityType.FIELD_DEFINITION, id, "FIELD_DEFINITION_DELETED", current.orElse(null), null);
         return ApiResponse.success(null, "Deleted");
     }
 
@@ -71,7 +80,9 @@ public class SchemaAdminController {
     // FieldGroup CRUD
     @PostMapping("/field-groups")
     public ApiResponse<FieldGroup> createFieldGroup(@RequestBody FieldGroup group) {
-        return ApiResponse.success(fieldGroupRepository.save(group), "Created");
+        FieldGroup saved = fieldGroupRepository.save(group);
+        recordAudit(AuditEntityType.FIELD_GROUP, saved.getName(), "FIELD_GROUP_CREATED", null, saved);
+        return ApiResponse.success(saved, "Created");
     }
 
     @PutMapping("/field-groups/{id}")
@@ -85,15 +96,19 @@ public class SchemaAdminController {
                 group.getVersion() == null
                         ? ((current.getVersion() == null ? 0 : current.getVersion()) + 1)
                         : group.getVersion());
-        return ApiResponse.success(fieldGroupRepository.save(group), "Updated");
+        FieldGroup saved = fieldGroupRepository.save(group);
+        recordAudit(AuditEntityType.FIELD_GROUP, id, "FIELD_GROUP_UPDATED", current, saved);
+        return ApiResponse.success(saved, "Updated");
     }
 
     @DeleteMapping("/field-groups/{id}")
     public ApiResponse<Void> deleteFieldGroup(@PathVariable String id) {
+        Optional<FieldGroup> current = findFieldGroupByName(id);
         long deleted = fieldGroupRepository.deleteByName(id);
         if (deleted == 0) {
             throw new IllegalArgumentException("Field group not found: " + id);
         }
+        recordAudit(AuditEntityType.FIELD_GROUP, id, "FIELD_GROUP_DELETED", current.orElse(null), null);
         return ApiResponse.success(null, "Deleted");
     }
 
@@ -164,5 +179,10 @@ public class SchemaAdminController {
 
     private int groupVersion(FieldGroup group) {
         return group.getVersion() == null ? 0 : group.getVersion();
+    }
+
+    private void recordAudit(
+            AuditEntityType entityType, String entityName, String action, Object before, Object after) {
+        auditService.record(entityType, entityName, null, action, before, after);
     }
 }

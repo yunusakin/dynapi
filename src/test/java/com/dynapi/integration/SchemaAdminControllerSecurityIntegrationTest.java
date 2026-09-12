@@ -3,21 +3,25 @@ package com.dynapi.integration;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.request;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.dynapi.DynapiApplication;
+import com.dynapi.controller.AuditController;
 import com.dynapi.controller.SchemaAdminController;
 import com.dynapi.domain.model.FieldDefinition;
 import com.dynapi.domain.model.FieldGroup;
 import com.dynapi.domain.model.SchemaLifecycleStatus;
 import com.dynapi.domain.model.SchemaVersion;
+import com.dynapi.dto.PaginatedResponse;
 import com.dynapi.dto.SchemaIndexSyncResult;
 import com.dynapi.exception.GlobalExceptionHandler;
 import com.dynapi.repository.FieldDefinitionRepository;
 import com.dynapi.repository.FieldGroupRepository;
+import com.dynapi.service.AuditService;
 import com.dynapi.service.SchemaIndexService;
 import com.dynapi.service.SchemaLifecycleService;
 import io.jsonwebtoken.Jwts;
@@ -54,7 +58,8 @@ import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilde
         webEnvironment = SpringBootTest.WebEnvironment.MOCK,
         classes = {
                 DynapiApplication.class,
-                SchemaAdminControllerSecurityIntegrationTest.SchemaAdminControllerTestConfig.class
+                SchemaAdminControllerSecurityIntegrationTest.SchemaAdminControllerTestConfig.class,
+                SchemaAdminControllerSecurityIntegrationTest.AuditControllerTestConfig.class
         })
 @AutoConfigureMockMvc
 @ActiveProfiles("test")
@@ -73,6 +78,9 @@ class SchemaAdminControllerSecurityIntegrationTest {
     private SchemaLifecycleService schemaLifecycleService;
     @MockitoBean
     private SchemaIndexService schemaIndexService;
+
+    @MockitoBean
+    private AuditService auditService;
 
     @Value("${security.jwt.secret}")
     private String jwtSecret;
@@ -110,6 +118,8 @@ class SchemaAdminControllerSecurityIntegrationTest {
         when(schemaIndexService.syncIndexes(anyString()))
                 .thenReturn(
                         new SchemaIndexSyncResult("users", 1, 2, 2, List.of("email"), List.of("priority")));
+        when(auditService.query(any(), any(), any(), any(), any(), any()))
+                .thenReturn(new PaginatedResponse<>(0, 20, 0L, List.of(), "timestamp", "DESC"));
     }
 
     @ParameterizedTest
@@ -127,6 +137,101 @@ class SchemaAdminControllerSecurityIntegrationTest {
         performRequest(method, path, body, tokenWithRoles("ADMIN"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(true));
+    }
+
+    @org.junit.jupiter.api.Test
+    void fieldDefinitionAndFieldGroupCrud_recordAuditEntries() throws Exception {
+        String token = tokenWithRoles("ADMIN");
+
+        performRequest(
+                        "POST",
+                        "/api/admin/schema/field-definitions",
+                        """
+                                {"fieldName": "age", "type": "NUMBER", "required": true}
+                                """,
+                        token)
+                .andExpect(status().isOk());
+        org.mockito.Mockito.verify(auditService)
+                .record(
+                        eq(com.dynapi.domain.model.AuditEntityType.FIELD_DEFINITION),
+                        eq("age"),
+                        any(),
+                        eq("FIELD_DEFINITION_CREATED"),
+                        any(),
+                        any());
+
+        performRequest(
+                        "PUT",
+                        "/api/admin/schema/field-definitions/age",
+                        """
+                                {"type": "NUMBER", "required": false}
+                                """,
+                        token)
+                .andExpect(status().isOk());
+        org.mockito.Mockito.verify(auditService)
+                .record(
+                        eq(com.dynapi.domain.model.AuditEntityType.FIELD_DEFINITION),
+                        eq("age"),
+                        any(),
+                        eq("FIELD_DEFINITION_UPDATED"),
+                        any(),
+                        any());
+
+        performRequest("DELETE", "/api/admin/schema/field-definitions/age", null, token)
+                .andExpect(status().isOk());
+        org.mockito.Mockito.verify(auditService)
+                .record(
+                        eq(com.dynapi.domain.model.AuditEntityType.FIELD_DEFINITION),
+                        eq("age"),
+                        any(),
+                        eq("FIELD_DEFINITION_DELETED"),
+                        any(),
+                        any());
+
+        performRequest(
+                        "POST",
+                        "/api/admin/schema/field-groups",
+                        """
+                                {"name": "profile", "entity": "users", "fieldNames": ["age"]}
+                                """,
+                        token)
+                .andExpect(status().isOk());
+        org.mockito.Mockito.verify(auditService)
+                .record(
+                        eq(com.dynapi.domain.model.AuditEntityType.FIELD_GROUP),
+                        eq("profile"),
+                        any(),
+                        eq("FIELD_GROUP_CREATED"),
+                        any(),
+                        any());
+
+        performRequest(
+                        "PUT",
+                        "/api/admin/schema/field-groups/profile",
+                        """
+                                {"entity": "users", "fieldNames": ["age", "name"]}
+                                """,
+                        token)
+                .andExpect(status().isOk());
+        org.mockito.Mockito.verify(auditService)
+                .record(
+                        eq(com.dynapi.domain.model.AuditEntityType.FIELD_GROUP),
+                        eq("profile"),
+                        any(),
+                        eq("FIELD_GROUP_UPDATED"),
+                        any(),
+                        any());
+
+        performRequest("DELETE", "/api/admin/schema/field-groups/profile", null, token)
+                .andExpect(status().isOk());
+        org.mockito.Mockito.verify(auditService)
+                .record(
+                        eq(com.dynapi.domain.model.AuditEntityType.FIELD_GROUP),
+                        eq("profile"),
+                        any(),
+                        eq("FIELD_GROUP_DELETED"),
+                        any(),
+                        any());
     }
 
     private ResultActions performRequest(String method, String path, String body, String token)
@@ -204,7 +309,8 @@ class SchemaAdminControllerSecurityIntegrationTest {
                 Arguments.of("POST", "/api/admin/schema/entities/users/deprecate", null),
                 Arguments.of("POST", "/api/admin/schema/entities/users/rollback/1", null),
                 Arguments.of("GET", "/api/admin/schema/entities/users/versions", null),
-                Arguments.of("POST", "/api/admin/schema/entities/users/indexes/sync", null));
+                Arguments.of("POST", "/api/admin/schema/entities/users/indexes/sync", null),
+                Arguments.of("GET", "/api/admin/audit", null));
     }
 
     private static SchemaVersion schemaVersion(
@@ -224,17 +330,27 @@ class SchemaAdminControllerSecurityIntegrationTest {
                 FieldDefinitionRepository fieldDefinitionRepository,
                 FieldGroupRepository fieldGroupRepository,
                 SchemaLifecycleService schemaLifecycleService,
-                SchemaIndexService schemaIndexService) {
+                SchemaIndexService schemaIndexService,
+                AuditService auditService) {
             return new SchemaAdminController(
                     fieldDefinitionRepository,
                     fieldGroupRepository,
                     schemaLifecycleService,
-                    schemaIndexService);
+                    schemaIndexService,
+                    auditService);
         }
 
         @Bean
         GlobalExceptionHandler globalExceptionHandler(MessageSource messageSource) {
             return new GlobalExceptionHandler(messageSource);
+        }
+    }
+
+    @TestConfiguration
+    static class AuditControllerTestConfig {
+        @Bean
+        AuditController auditController(AuditService auditService) {
+            return new AuditController(auditService);
         }
     }
 }

@@ -1,15 +1,19 @@
 package com.dynapi.service;
 
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.dynapi.domain.event.DomainEvent;
+import com.dynapi.domain.model.AuditEntityType;
 import com.dynapi.domain.model.FieldDefinition;
 import com.dynapi.domain.model.FieldGroup;
 import com.dynapi.domain.model.FieldType;
@@ -41,6 +45,10 @@ class SchemaLifecycleServiceTest {
     private SchemaVersionRepository schemaVersionRepository;
     @Mock
     private EventPublisher eventPublisher;
+    @Mock
+    private AuditService auditService;
+    @Mock
+    private com.dynapi.security.CurrentActorResolver currentActorResolver;
 
     private SchemaLifecycleService schemaLifecycleService;
 
@@ -51,7 +59,9 @@ class SchemaLifecycleServiceTest {
                         fieldGroupRepository,
                         fieldDefinitionRepository,
                         schemaVersionRepository,
-                        eventPublisher);
+                        eventPublisher,
+                        auditService,
+                        currentActorResolver);
 
         lenient()
                 .when(schemaVersionRepository.save(any(SchemaVersion.class)))
@@ -127,6 +137,9 @@ class SchemaLifecycleServiceTest {
         List<SchemaVersion> saved = saveCaptor.getAllValues();
         assertEquals(SchemaLifecycleStatus.DEPRECATED, saved.get(0).getStatus());
         assertEquals(SchemaLifecycleStatus.PUBLISHED, saved.get(1).getStatus());
+
+        verify(auditService)
+                .record(eq(AuditEntityType.SCHEMA), eq("tasks"), isNull(), eq("SCHEMA_PUBLISHED"), any(), any());
     }
 
     @Test
@@ -312,6 +325,22 @@ class SchemaLifecycleServiceTest {
 
         assertEquals(SchemaLifecycleStatus.DEPRECATED, deprecated.getStatus());
         verify(eventPublisher).publishSchemaChange(any());
+        verify(auditService)
+                .record(eq(AuditEntityType.SCHEMA), eq("tasks"), isNull(), eq("SCHEMA_DEPRECATED"), any(), any());
+    }
+
+    @Test
+    void deprecate_doesNotThrowWhenPublishedVersionNumberIsNull() {
+        // statusSnapshot() must not use Map.of(), which throws NPE on a null value: version can be
+        // null for a legacy/incompletely-populated SchemaVersion, and this call happens on the
+        // caller's thread before auditService.record()'s own async dispatch/try-catch ever runs.
+        SchemaVersion published = schemaVersion(3, List.of(field("title", FieldType.STRING, true)));
+        published.setVersion(null);
+        when(schemaVersionRepository.findTopByEntityNameAndStatusOrderByVersionDesc(
+                "tasks", SchemaLifecycleStatus.PUBLISHED))
+                .thenReturn(Optional.of(published));
+
+        assertDoesNotThrow(() -> schemaLifecycleService.deprecate("tasks"));
     }
 
     @Test
@@ -348,6 +377,8 @@ class SchemaLifecycleServiceTest {
         ArgumentCaptor<DomainEvent<?>> eventCaptor = ArgumentCaptor.forClass(DomainEvent.class);
         verify(eventPublisher).publishSchemaChange(eventCaptor.capture());
         assertEquals("SCHEMA_ROLLED_BACK", eventCaptor.getValue().getEventType());
+        verify(auditService)
+                .record(eq(AuditEntityType.SCHEMA), eq("tasks"), isNull(), eq("SCHEMA_ROLLED_BACK"), any(), any());
     }
 
     @Test

@@ -7,6 +7,7 @@ import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import com.dynapi.domain.model.AuditEntityType;
 import com.dynapi.domain.model.FieldDefinition;
 import com.dynapi.domain.model.FieldGroup;
 import com.dynapi.domain.model.FieldType;
@@ -44,6 +45,8 @@ class FormSubmissionServiceTest {
     private SchemaLifecycleService schemaLifecycleService;
     @Mock
     private UniqueFieldConstraintService uniqueFieldConstraintService;
+    @Mock
+    private AuditService auditService;
 
     private FormSubmissionService formSubmissionService;
 
@@ -56,7 +59,8 @@ class FormSubmissionServiceTest {
                         messageSource,
                         dynamicValidator,
                         schemaLifecycleService,
-                        uniqueFieldConstraintService);
+                        uniqueFieldConstraintService,
+                        auditService);
     }
 
     @Test
@@ -99,12 +103,15 @@ class FormSubmissionServiceTest {
 
         when(fieldGroupRepository.findById("task-form")).thenReturn(Optional.of(group));
         when(schemaLifecycleService.latestPublished("tasks")).thenReturn(published);
+        when(mongoTemplate.save(payload, "tasks")).thenReturn(payload);
 
         formSubmissionService.submitForm(request, Locale.US);
 
         verify(dynamicValidator).validate(eq(payload), eq(List.of(title)), any(Locale.class));
         verify(uniqueFieldConstraintService).validateForCreate("tasks", payload, List.of(title));
         verify(mongoTemplate).save(payload, "tasks");
+        verify(auditService)
+                .record(eq(AuditEntityType.RECORD), eq("tasks"), any(), eq("RECORD_CREATED"), any(), eq(payload));
     }
 
     @Test
@@ -132,12 +139,47 @@ class FormSubmissionServiceTest {
         when(fieldGroupRepository.findTopByNameOrderByVersionDesc("task-form"))
                 .thenReturn(Optional.of(group));
         when(schemaLifecycleService.latestPublished("tasks")).thenReturn(published);
+        when(mongoTemplate.save(payload, "tasks")).thenReturn(payload);
 
         formSubmissionService.submitForm(request, Locale.US);
 
         verify(dynamicValidator).validate(eq(payload), eq(List.of(title)), any(Locale.class));
         verify(uniqueFieldConstraintService).validateForCreate("tasks", payload, List.of(title));
         verify(mongoTemplate).save(payload, "tasks");
+    }
+
+    @Test
+    void submitForm_rejectsPayloadContainingReservedIdField() {
+        Map<String, Object> payload = Map.of("_id", "existing-record-id", "title", "Ship v1");
+        FormSubmissionRequest request = new FormSubmissionRequest("task-form", payload);
+
+        FieldGroup group = new FieldGroup();
+        group.setName("task-form");
+        group.setEntity("tasks");
+
+        FieldDefinition title = new FieldDefinition();
+        title.setFieldName("title");
+        title.setType(FieldType.STRING);
+        title.setRequired(true);
+
+        SchemaVersion published = new SchemaVersion();
+        published.setEntityName("tasks");
+        published.setVersion(1);
+        published.setStatus(SchemaLifecycleStatus.PUBLISHED);
+        published.setFields(List.of(title));
+
+        when(fieldGroupRepository.findById("task-form")).thenReturn(Optional.of(group));
+        when(schemaLifecycleService.latestPublished("tasks")).thenReturn(published);
+
+        IllegalArgumentException ex =
+                assertThrows(
+                        IllegalArgumentException.class,
+                        () -> formSubmissionService.submitForm(request, Locale.US));
+        org.junit.jupiter.api.Assertions.assertTrue(ex.getMessage().contains("Reserved field"));
+
+        verify(mongoTemplate, org.mockito.Mockito.never()).save(any(Map.class), any(String.class));
+        verify(auditService, org.mockito.Mockito.never())
+                .record(any(), any(), any(), any(), any(), any());
     }
 
     @Test

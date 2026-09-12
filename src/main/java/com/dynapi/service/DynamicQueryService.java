@@ -1,5 +1,6 @@
 package com.dynapi.service;
 
+import com.dynapi.config.PageRequestGuard;
 import com.dynapi.config.QueryGuardrailProperties;
 import com.dynapi.domain.model.FieldDefinition;
 import com.dynapi.domain.model.FieldType;
@@ -8,6 +9,7 @@ import com.dynapi.dto.DynamicQueryRequest;
 import com.dynapi.dto.FilterRule;
 import com.dynapi.dto.FormRecordDto;
 import com.dynapi.dto.PaginatedResponse;
+import com.dynapi.infrastructure.persistence.MongoDocumentIds;
 
 import java.util.Collection;
 import java.util.HashMap;
@@ -74,9 +76,9 @@ public class DynamicQueryService {
                 results.stream()
                         .map(
                                 result -> {
-                                    String id = result.get("_id") != null ? result.get("_id").toString() : null;
                                     @SuppressWarnings("unchecked")
                                     Map<String, Object> data = new HashMap<>((Map<String, Object>) result);
+                                    String id = MongoDocumentIds.stringify(data);
                                     data.remove("_id");
                                     data.remove("_class");
                                     return new FormRecordDto(id, data);
@@ -90,27 +92,11 @@ public class DynamicQueryService {
     }
 
     private int resolvePage(Integer page) {
-        if (page == null) {
-            return DEFAULT_PAGE;
-        }
-        if (page < 0) {
-            throw new IllegalArgumentException("Page must be >= 0");
-        }
-        return page;
+        return PageRequestGuard.resolvePage(page, DEFAULT_PAGE);
     }
 
     private int resolveSize(Integer size) {
-        if (size == null) {
-            return DEFAULT_SIZE;
-        }
-        if (size <= 0) {
-            throw new IllegalArgumentException("Size must be > 0");
-        }
-        if (size > guardrailProperties.getMaxPageSize()) {
-            throw new IllegalArgumentException(
-                    "Size exceeds max page size: " + guardrailProperties.getMaxPageSize());
-        }
-        return size;
+        return PageRequestGuard.resolveSize(size, DEFAULT_SIZE, guardrailProperties);
     }
 
     private Sort.Direction resolveSortDirection(String sortDirection) {
