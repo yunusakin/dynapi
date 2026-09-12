@@ -1,6 +1,6 @@
 package com.dynapi.domain.model;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 
 import lombok.Data;
 import org.springframework.data.annotation.Id;
@@ -16,7 +16,7 @@ public class AuditEntry {
     private String entityId;
     private String action;
     private String actor;
-    private LocalDateTime timestamp;
+    private Instant timestamp;
     private Object before;
     private Object after;
 }

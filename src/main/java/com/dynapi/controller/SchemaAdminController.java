@@ -41,13 +41,7 @@ public class SchemaAdminController {
     @PostMapping("/field-definitions")
     public ApiResponse<FieldDefinition> createFieldDefinition(@RequestBody FieldDefinition def) {
         FieldDefinition saved = fieldDefinitionRepository.save(def);
-        auditService.record(
-                AuditEntityType.FIELD_DEFINITION,
-                saved.getFieldName(),
-                null,
-                "FIELD_DEFINITION_CREATED",
-                null,
-                saved);
+        recordAudit(AuditEntityType.FIELD_DEFINITION, saved.getFieldName(), "FIELD_DEFINITION_CREATED", null, saved);
         return ApiResponse.success(saved, "Created");
     }
 
@@ -63,8 +57,7 @@ public class SchemaAdminController {
                         ? ((current.getVersion() == null ? 0 : current.getVersion()) + 1)
                         : def.getVersion());
         FieldDefinition saved = fieldDefinitionRepository.save(def);
-        auditService.record(
-                AuditEntityType.FIELD_DEFINITION, id, null, "FIELD_DEFINITION_UPDATED", current, saved);
+        recordAudit(AuditEntityType.FIELD_DEFINITION, id, "FIELD_DEFINITION_UPDATED", current, saved);
         return ApiResponse.success(saved, "Updated");
     }
 
@@ -75,13 +68,7 @@ public class SchemaAdminController {
         if (deleted == 0) {
             throw new IllegalArgumentException("Field definition not found: " + id);
         }
-        auditService.record(
-                AuditEntityType.FIELD_DEFINITION,
-                id,
-                null,
-                "FIELD_DEFINITION_DELETED",
-                current.orElse(null),
-                null);
+        recordAudit(AuditEntityType.FIELD_DEFINITION, id, "FIELD_DEFINITION_DELETED", current.orElse(null), null);
         return ApiResponse.success(null, "Deleted");
     }
 
@@ -94,8 +81,7 @@ public class SchemaAdminController {
     @PostMapping("/field-groups")
     public ApiResponse<FieldGroup> createFieldGroup(@RequestBody FieldGroup group) {
         FieldGroup saved = fieldGroupRepository.save(group);
-        auditService.record(
-                AuditEntityType.FIELD_GROUP, saved.getName(), null, "FIELD_GROUP_CREATED", null, saved);
+        recordAudit(AuditEntityType.FIELD_GROUP, saved.getName(), "FIELD_GROUP_CREATED", null, saved);
         return ApiResponse.success(saved, "Created");
     }
 
@@ -111,7 +97,7 @@ public class SchemaAdminController {
                         ? ((current.getVersion() == null ? 0 : current.getVersion()) + 1)
                         : group.getVersion());
         FieldGroup saved = fieldGroupRepository.save(group);
-        auditService.record(AuditEntityType.FIELD_GROUP, id, null, "FIELD_GROUP_UPDATED", current, saved);
+        recordAudit(AuditEntityType.FIELD_GROUP, id, "FIELD_GROUP_UPDATED", current, saved);
         return ApiResponse.success(saved, "Updated");
     }
 
@@ -122,8 +108,7 @@ public class SchemaAdminController {
         if (deleted == 0) {
             throw new IllegalArgumentException("Field group not found: " + id);
         }
-        auditService.record(
-                AuditEntityType.FIELD_GROUP, id, null, "FIELD_GROUP_DELETED", current.orElse(null), null);
+        recordAudit(AuditEntityType.FIELD_GROUP, id, "FIELD_GROUP_DELETED", current.orElse(null), null);
         return ApiResponse.success(null, "Deleted");
     }
 
@@ -194,5 +179,10 @@ public class SchemaAdminController {
 
     private int groupVersion(FieldGroup group) {
         return group.getVersion() == null ? 0 : group.getVersion();
+    }
+
+    private void recordAudit(
+            AuditEntityType entityType, String entityName, String action, Object before, Object after) {
+        auditService.record(entityType, entityName, null, action, before, after);
     }
 }

@@ -1,5 +1,6 @@
 package com.dynapi.service;
 
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -326,6 +327,20 @@ class SchemaLifecycleServiceTest {
         verify(eventPublisher).publishSchemaChange(any());
         verify(auditService)
                 .record(eq(AuditEntityType.SCHEMA), eq("tasks"), isNull(), eq("SCHEMA_DEPRECATED"), any(), any());
+    }
+
+    @Test
+    void deprecate_doesNotThrowWhenPublishedVersionNumberIsNull() {
+        // statusSnapshot() must not use Map.of(), which throws NPE on a null value: version can be
+        // null for a legacy/incompletely-populated SchemaVersion, and this call happens on the
+        // caller's thread before auditService.record()'s own async dispatch/try-catch ever runs.
+        SchemaVersion published = schemaVersion(3, List.of(field("title", FieldType.STRING, true)));
+        published.setVersion(null);
+        when(schemaVersionRepository.findTopByEntityNameAndStatusOrderByVersionDesc(
+                "tasks", SchemaLifecycleStatus.PUBLISHED))
+                .thenReturn(Optional.of(published));
+
+        assertDoesNotThrow(() -> schemaLifecycleService.deprecate("tasks"));
     }
 
     @Test

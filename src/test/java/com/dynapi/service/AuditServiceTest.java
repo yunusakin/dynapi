@@ -85,6 +85,43 @@ class AuditServiceTest {
     }
 
     @Test
+    void record_swallowsMappingExceptionInsteadOfPropagating() {
+        // MappingException extends RuntimeException directly, not DataAccessException -- a
+        // narrower catch(DataAccessException) would let this escape uncaught.
+        when(currentActorResolver.resolve()).thenReturn("alice");
+        doThrow(new org.springframework.data.mapping.MappingException("cannot convert value"))
+                .when(mongoTemplate)
+                .save(any(AuditEntry.class));
+
+        assertDoesNotThrow(
+                () ->
+                        auditService.record(
+                                AuditEntityType.RECORD,
+                                "tasks",
+                                "abc123",
+                                "RECORD_PATCHED",
+                                Map.of(),
+                                Map.of()));
+    }
+
+    @Test
+    void record_swallowsFailureFromActorResolutionItself() {
+        // The try block must cover the whole method body, not just the save() call, so a bug in
+        // actor resolution (or any future logic added before the save) never surfaces either.
+        when(currentActorResolver.resolve()).thenThrow(new IllegalStateException("boom"));
+
+        assertDoesNotThrow(
+                () ->
+                        auditService.record(
+                                AuditEntityType.RECORD,
+                                "tasks",
+                                "abc123",
+                                "RECORD_PATCHED",
+                                Map.of(),
+                                Map.of()));
+    }
+
+    @Test
     void query_appliesFiltersAndReturnsPaginatedResult() {
         AuditEntry entry = new AuditEntry();
         entry.setEntityType(AuditEntityType.SCHEMA);

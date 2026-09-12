@@ -531,7 +531,10 @@ public class SchemaLifecycleService {
     }
 
     private Map<String, Object> statusSnapshot(String status, Integer version) {
-        return Map.of("status", status, "version", version);
+        Map<String, Object> snapshot = new LinkedHashMap<>();
+        snapshot.put("status", status);
+        snapshot.put("version", version);
+        return snapshot;
     }
 
     private record FieldDescriptor(

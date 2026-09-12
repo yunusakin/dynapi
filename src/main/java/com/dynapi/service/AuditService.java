@@ -8,13 +8,11 @@ import com.dynapi.domain.model.AuditEntry;
 import com.dynapi.dto.PaginatedResponse;
 import com.dynapi.security.CurrentActorResolver;
 
-import java.time.Clock;
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.util.Arrays;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.dao.DataAccessException;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.mongodb.core.MongoTemplate;
@@ -35,11 +33,12 @@ public class AuditService {
     private final CurrentActorResolver currentActorResolver;
 
     /**
-     * Records an audit entry off the request thread. Failures here are logged and swallowed rather
-     * than propagated: audit logging is a side effect of an already-completed mutation, and a
-     * transient failure to record it must never make an otherwise-successful operation appear to
-     * have failed to the caller. Only DataAccessException (Spring's infra-failure hierarchy) is
-     * swallowed here; a genuine programming bug elsewhere in this method still surfaces.
+     * Records an audit entry off the request thread. The entire body is guarded: audit logging is a
+     * side effect of an already-completed mutation, and neither a Mongo failure nor a bug in this
+     * method's own entry-building logic may ever surface to the caller as a failed mutation. Callers
+     * MUST invoke this through the injected AuditService bean (never self-invoked from within
+     * AuditService), or Spring's @Async proxy will not intercept the call and it will run
+     * synchronously.
      */
     @Async(AsyncAuditConfig.AUDIT_EXECUTOR)
     public void record(
@@ -49,18 +48,18 @@ public class AuditService {
             String action,
             Object before,
             Object after) {
-        AuditEntry entry = new AuditEntry();
-        entry.setEntityType(entityType);
-        entry.setEntityName(entityName);
-        entry.setEntityId(entityId);
-        entry.setAction(action);
-        entry.setActor(currentActorResolver.resolve());
-        entry.setTimestamp(LocalDateTime.now(Clock.systemUTC()));
-        entry.setBefore(before);
-        entry.setAfter(after);
         try {
+            AuditEntry entry = new AuditEntry();
+            entry.setEntityType(entityType);
+            entry.setEntityName(entityName);
+            entry.setEntityId(entityId);
+            entry.setAction(action);
+            entry.setActor(currentActorResolver.resolve());
+            entry.setTimestamp(Instant.now());
+            entry.setBefore(before);
+            entry.setAfter(after);
             mongoTemplate.save(entry);
-        } catch (DataAccessException ex) {
+        } catch (RuntimeException ex) {
             log.error(
                     "Failed to record audit entry for entityType={}, entityName={}, entityId={}, action={}",
                     entityType,
