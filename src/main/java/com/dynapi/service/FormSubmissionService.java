@@ -1,9 +1,12 @@
 package com.dynapi.service;
 
+import com.dynapi.domain.model.AuditEntityType;
 import com.dynapi.domain.model.FieldDefinition;
 import com.dynapi.domain.model.FieldGroup;
 import com.dynapi.domain.model.SchemaVersion;
+import com.dynapi.domain.validation.ReservedFieldGuard;
 import com.dynapi.dto.FormSubmissionRequest;
+import com.dynapi.infrastructure.persistence.MongoDocumentIds;
 import com.dynapi.repository.FieldGroupRepository;
 
 import java.util.Comparator;
@@ -43,14 +46,16 @@ public class FormSubmissionService {
             throw new IllegalArgumentException(
                     "Published schema has no fields for entity: " + group.getEntity());
         }
-        // 3. Validate input recursively and type-safe
+        // 3. Reject reserved fields (e.g. _id) so a submission can never silently overwrite an
+        // existing record by id, then validate input recursively and type-safe
+        ReservedFieldGuard.reject(request.data());
         dynamicValidator.validate(request.data(), schema, locale);
         uniqueFieldConstraintService.validateForCreate(group.getEntity(), request.data(), schema);
         // 4. Save form data to collection by entity
         String collectionName = group.getEntity();
         Map<String, Object> saved = mongoTemplate.save(request.data(), collectionName);
-        String recordId = saved.get("_id") == null ? null : saved.get("_id").toString();
-        auditService.record("RECORD", group.getEntity(), recordId, "RECORD_CREATED", null, saved);
+        String recordId = MongoDocumentIds.stringify(saved);
+        auditService.record(AuditEntityType.RECORD, group.getEntity(), recordId, "RECORD_CREATED", null, saved);
     }
 
     private Optional<FieldGroup> resolveGroup(String groupIdOrName) {

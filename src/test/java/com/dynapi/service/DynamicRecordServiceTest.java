@@ -11,6 +11,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.dynapi.domain.exception.EntityNotFoundException;
+import com.dynapi.domain.model.AuditEntityType;
 import com.dynapi.domain.model.FieldDefinition;
 import com.dynapi.domain.model.FieldType;
 import com.dynapi.domain.model.SchemaLifecycleStatus;
@@ -102,7 +103,7 @@ class DynamicRecordServiceTest {
 
         verify(auditService)
                 .record(
-                        eq("RECORD"),
+                        eq(AuditEntityType.RECORD),
                         eq("tasks"),
                         eq(objectId.toHexString()),
                         eq("RECORD_PATCHED"),
@@ -135,7 +136,7 @@ class DynamicRecordServiceTest {
 
         verify(auditService)
                 .record(
-                        eq("RECORD"),
+                        eq(AuditEntityType.RECORD),
                         eq("tasks"),
                         eq(objectId.toHexString()),
                         eq("RECORD_REPLACED"),
@@ -162,7 +163,7 @@ class DynamicRecordServiceTest {
 
         verify(auditService)
                 .record(
-                        eq("RECORD"),
+                        eq(AuditEntityType.RECORD),
                         eq("tasks"),
                         eq(objectId.toHexString()),
                         eq("RECORD_DELETED"),

@@ -12,6 +12,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.dynapi.domain.event.DomainEvent;
+import com.dynapi.domain.model.AuditEntityType;
 import com.dynapi.domain.model.FieldDefinition;
 import com.dynapi.domain.model.FieldGroup;
 import com.dynapi.domain.model.FieldType;
@@ -137,7 +138,7 @@ class SchemaLifecycleServiceTest {
         assertEquals(SchemaLifecycleStatus.PUBLISHED, saved.get(1).getStatus());
 
         verify(auditService)
-                .record(eq("SCHEMA"), eq("tasks"), isNull(), eq("SCHEMA_PUBLISHED"), any(), any());
+                .record(eq(AuditEntityType.SCHEMA), eq("tasks"), isNull(), eq("SCHEMA_PUBLISHED"), any(), any());
     }
 
     @Test
@@ -324,7 +325,7 @@ class SchemaLifecycleServiceTest {
         assertEquals(SchemaLifecycleStatus.DEPRECATED, deprecated.getStatus());
         verify(eventPublisher).publishSchemaChange(any());
         verify(auditService)
-                .record(eq("SCHEMA"), eq("tasks"), isNull(), eq("SCHEMA_DEPRECATED"), any(), any());
+                .record(eq(AuditEntityType.SCHEMA), eq("tasks"), isNull(), eq("SCHEMA_DEPRECATED"), any(), any());
     }
 
     @Test
@@ -362,7 +363,7 @@ class SchemaLifecycleServiceTest {
         verify(eventPublisher).publishSchemaChange(eventCaptor.capture());
         assertEquals("SCHEMA_ROLLED_BACK", eventCaptor.getValue().getEventType());
         verify(auditService)
-                .record(eq("SCHEMA"), eq("tasks"), isNull(), eq("SCHEMA_ROLLED_BACK"), any(), any());
+                .record(eq(AuditEntityType.SCHEMA), eq("tasks"), isNull(), eq("SCHEMA_ROLLED_BACK"), any(), any());
     }
 
     @Test

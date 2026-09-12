@@ -10,6 +10,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.dynapi.config.QueryGuardrailProperties;
+import com.dynapi.domain.model.AuditEntityType;
 import com.dynapi.domain.model.AuditEntry;
 import com.dynapi.dto.PaginatedResponse;
 import com.dynapi.security.CurrentActorResolver;
@@ -49,13 +50,13 @@ class AuditServiceTest {
         Map<String, Object> before = Map.of("title", "Old");
         Map<String, Object> after = Map.of("title", "New");
 
-        auditService.record("RECORD", "tasks", "abc123", "RECORD_PATCHED", before, after);
+        auditService.record(AuditEntityType.RECORD, "tasks", "abc123", "RECORD_PATCHED", before, after);
 
         ArgumentCaptor<AuditEntry> captor = ArgumentCaptor.forClass(AuditEntry.class);
         verify(mongoTemplate).save(captor.capture());
         AuditEntry saved = captor.getValue();
 
-        assertEquals("RECORD", saved.getEntityType());
+        assertEquals(AuditEntityType.RECORD, saved.getEntityType());
         assertEquals("tasks", saved.getEntityName());
         assertEquals("abc123", saved.getEntityId());
         assertEquals("RECORD_PATCHED", saved.getAction());
@@ -66,7 +67,7 @@ class AuditServiceTest {
     }
 
     @Test
-    void record_swallowsWriteFailureInsteadOfPropagating() {
+    void record_swallowsDataAccessFailureInsteadOfPropagating() {
         when(currentActorResolver.resolve()).thenReturn("alice");
         doThrow(new org.springframework.dao.DataAccessResourceFailureException("mongo down"))
                 .when(mongoTemplate)
@@ -75,13 +76,18 @@ class AuditServiceTest {
         assertDoesNotThrow(
                 () ->
                         auditService.record(
-                                "RECORD", "tasks", "abc123", "RECORD_PATCHED", Map.of(), Map.of()));
+                                AuditEntityType.RECORD,
+                                "tasks",
+                                "abc123",
+                                "RECORD_PATCHED",
+                                Map.of(),
+                                Map.of()));
     }
 
     @Test
     void query_appliesFiltersAndReturnsPaginatedResult() {
         AuditEntry entry = new AuditEntry();
-        entry.setEntityType("SCHEMA");
+        entry.setEntityType(AuditEntityType.SCHEMA);
         entry.setEntityName("tasks");
         entry.setAction("SCHEMA_PUBLISHED");
 
@@ -101,11 +107,11 @@ class AuditServiceTest {
     @Test
     void query_withOnlyEntityTypeReturnsEntriesAcrossAllEntityNames() {
         AuditEntry recordOne = new AuditEntry();
-        recordOne.setEntityType("RECORD");
+        recordOne.setEntityType(AuditEntityType.RECORD);
         recordOne.setEntityName("tasks");
 
         AuditEntry recordTwo = new AuditEntry();
-        recordTwo.setEntityType("RECORD");
+        recordTwo.setEntityType(AuditEntityType.RECORD);
         recordTwo.setEntityName("orders");
 
         when(mongoTemplate.count(any(Query.class), eq(AuditEntry.class))).thenReturn(2L);
@@ -116,6 +122,29 @@ class AuditServiceTest {
 
         assertEquals(2L, result.totalElements());
         assertEquals(2, result.content().size());
+    }
+
+    @Test
+    void query_countsBeforePaginationIsAppliedToTheSharedQuery() {
+        // Query is a single mutable instance reused for both count() and find(): inspecting it via
+        // an ArgumentCaptor after query() returns would see the final, already-paginated state, so
+        // the limit/skip at the moment of the count() call must be captured with an Answer instead.
+        int[] limitAtCountTime = new int[1];
+        long[] skipAtCountTime = new long[1];
+        when(mongoTemplate.count(any(Query.class), eq(AuditEntry.class)))
+                .thenAnswer(
+                        invocation -> {
+                            Query query = invocation.getArgument(0);
+                            limitAtCountTime[0] = query.getLimit();
+                            skipAtCountTime[0] = query.getSkip();
+                            return 5L;
+                        });
+        when(mongoTemplate.find(any(Query.class), eq(AuditEntry.class))).thenReturn(List.of());
+
+        auditService.query(null, null, null, null, 0, 2);
+
+        assertEquals(0, limitAtCountTime[0]);
+        assertEquals(0, skipAtCountTime[0]);
     }
 
     @Test
@@ -130,5 +159,23 @@ class AuditServiceTest {
         assertThrows(
                 IllegalArgumentException.class,
                 () -> auditService.query(null, null, null, null, -1, 10));
+    }
+
+    @Test
+    void query_rejectsUnknownEntityType() {
+        IllegalArgumentException ex =
+                assertThrows(
+                        IllegalArgumentException.class,
+                        () -> auditService.query("NOT_A_REAL_TYPE", null, null, null, 0, 10));
+
+        org.junit.jupiter.api.Assertions.assertTrue(ex.getMessage().contains("Unknown entityType"));
+    }
+
+    @Test
+    void query_entityTypeIsCaseInsensitive() {
+        when(mongoTemplate.count(any(Query.class), eq(AuditEntry.class))).thenReturn(0L);
+        when(mongoTemplate.find(any(Query.class), eq(AuditEntry.class))).thenReturn(List.of());
+
+        assertDoesNotThrow(() -> auditService.query("record", null, null, null, 0, 10));
     }
 }

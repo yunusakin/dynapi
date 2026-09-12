@@ -1,6 +1,7 @@
 package com.dynapi.service;
 
 import com.dynapi.domain.event.DomainEvent;
+import com.dynapi.domain.model.AuditEntityType;
 import com.dynapi.domain.model.FieldDefinition;
 import com.dynapi.domain.model.FieldGroup;
 import com.dynapi.domain.model.SchemaLifecycleStatus;
@@ -85,13 +86,7 @@ public class SchemaLifecycleService {
                         group.getName() == null ? "" : group.getName(),
                         "version",
                         String.valueOf(saved.getVersion())));
-        auditService.record(
-                "SCHEMA",
-                group.getEntity(),
-                null,
-                "SCHEMA_PUBLISHED",
-                latestPublishedOpt.map(SchemaVersion::getFields).orElse(null),
-                saved.getFields());
+        recordSchemaAudit("SCHEMA_PUBLISHED", group.getEntity(), latestPublishedOpt, saved);
         return saved;
     }
 
@@ -142,12 +137,12 @@ public class SchemaLifecycleService {
         publishSchemaEvent(
                 "SCHEMA_DEPRECATED", entity, saved, Map.of("version", String.valueOf(saved.getVersion())));
         auditService.record(
-                "SCHEMA",
+                AuditEntityType.SCHEMA,
                 entity,
                 null,
                 "SCHEMA_DEPRECATED",
-                Map.of("status", "PUBLISHED", "version", saved.getVersion()),
-                Map.of("status", "DEPRECATED", "version", saved.getVersion()));
+                statusSnapshot("PUBLISHED", saved.getVersion()),
+                statusSnapshot("DEPRECATED", saved.getVersion()));
         return saved;
     }
 
@@ -214,13 +209,7 @@ public class SchemaLifecycleService {
                 Map.of(
                         "fromVersion", String.valueOf(version),
                         "toVersion", String.valueOf(saved.getVersion())));
-        auditService.record(
-                "SCHEMA",
-                entity,
-                null,
-                "SCHEMA_ROLLED_BACK",
-                currentPublishedOpt.map(SchemaVersion::getFields).orElse(null),
-                saved.getFields());
+        recordSchemaAudit("SCHEMA_ROLLED_BACK", entity, currentPublishedOpt, saved);
         return saved;
     }
 
@@ -528,6 +517,21 @@ public class SchemaLifecycleService {
 
     private String currentActor() {
         return currentActorResolver.resolve();
+    }
+
+    private void recordSchemaAudit(
+            String action, String entity, Optional<SchemaVersion> previousOpt, SchemaVersion saved) {
+        auditService.record(
+                AuditEntityType.SCHEMA,
+                entity,
+                null,
+                action,
+                previousOpt.map(SchemaVersion::getFields).orElse(null),
+                saved.getFields());
+    }
+
+    private Map<String, Object> statusSnapshot(String status, Integer version) {
+        return Map.of("status", status, "version", version);
     }
 
     private record FieldDescriptor(

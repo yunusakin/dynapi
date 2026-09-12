@@ -3,6 +3,7 @@ package com.dynapi.integration;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.request;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -138,6 +139,101 @@ class SchemaAdminControllerSecurityIntegrationTest {
                 .andExpect(jsonPath("$.success").value(true));
     }
 
+    @org.junit.jupiter.api.Test
+    void fieldDefinitionAndFieldGroupCrud_recordAuditEntries() throws Exception {
+        String token = tokenWithRoles("ADMIN");
+
+        performRequest(
+                        "POST",
+                        "/api/admin/schema/field-definitions",
+                        """
+                                {"fieldName": "age", "type": "NUMBER", "required": true}
+                                """,
+                        token)
+                .andExpect(status().isOk());
+        org.mockito.Mockito.verify(auditService)
+                .record(
+                        eq(com.dynapi.domain.model.AuditEntityType.FIELD_DEFINITION),
+                        eq("age"),
+                        any(),
+                        eq("FIELD_DEFINITION_CREATED"),
+                        any(),
+                        any());
+
+        performRequest(
+                        "PUT",
+                        "/api/admin/schema/field-definitions/age",
+                        """
+                                {"type": "NUMBER", "required": false}
+                                """,
+                        token)
+                .andExpect(status().isOk());
+        org.mockito.Mockito.verify(auditService)
+                .record(
+                        eq(com.dynapi.domain.model.AuditEntityType.FIELD_DEFINITION),
+                        eq("age"),
+                        any(),
+                        eq("FIELD_DEFINITION_UPDATED"),
+                        any(),
+                        any());
+
+        performRequest("DELETE", "/api/admin/schema/field-definitions/age", null, token)
+                .andExpect(status().isOk());
+        org.mockito.Mockito.verify(auditService)
+                .record(
+                        eq(com.dynapi.domain.model.AuditEntityType.FIELD_DEFINITION),
+                        eq("age"),
+                        any(),
+                        eq("FIELD_DEFINITION_DELETED"),
+                        any(),
+                        any());
+
+        performRequest(
+                        "POST",
+                        "/api/admin/schema/field-groups",
+                        """
+                                {"name": "profile", "entity": "users", "fieldNames": ["age"]}
+                                """,
+                        token)
+                .andExpect(status().isOk());
+        org.mockito.Mockito.verify(auditService)
+                .record(
+                        eq(com.dynapi.domain.model.AuditEntityType.FIELD_GROUP),
+                        eq("profile"),
+                        any(),
+                        eq("FIELD_GROUP_CREATED"),
+                        any(),
+                        any());
+
+        performRequest(
+                        "PUT",
+                        "/api/admin/schema/field-groups/profile",
+                        """
+                                {"entity": "users", "fieldNames": ["age", "name"]}
+                                """,
+                        token)
+                .andExpect(status().isOk());
+        org.mockito.Mockito.verify(auditService)
+                .record(
+                        eq(com.dynapi.domain.model.AuditEntityType.FIELD_GROUP),
+                        eq("profile"),
+                        any(),
+                        eq("FIELD_GROUP_UPDATED"),
+                        any(),
+                        any());
+
+        performRequest("DELETE", "/api/admin/schema/field-groups/profile", null, token)
+                .andExpect(status().isOk());
+        org.mockito.Mockito.verify(auditService)
+                .record(
+                        eq(com.dynapi.domain.model.AuditEntityType.FIELD_GROUP),
+                        eq("profile"),
+                        any(),
+                        eq("FIELD_GROUP_DELETED"),
+                        any(),
+                        any());
+    }
+
     private ResultActions performRequest(String method, String path, String body, String token)
             throws Exception {
         MockHttpServletRequestBuilder builder =
@@ -234,12 +330,14 @@ class SchemaAdminControllerSecurityIntegrationTest {
                 FieldDefinitionRepository fieldDefinitionRepository,
                 FieldGroupRepository fieldGroupRepository,
                 SchemaLifecycleService schemaLifecycleService,
-                SchemaIndexService schemaIndexService) {
+                SchemaIndexService schemaIndexService,
+                AuditService auditService) {
             return new SchemaAdminController(
                     fieldDefinitionRepository,
                     fieldGroupRepository,
                     schemaLifecycleService,
-                    schemaIndexService);
+                    schemaIndexService,
+                    auditService);
         }
 
         @Bean
